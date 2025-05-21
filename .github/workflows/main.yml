@@ -3,33 +3,47 @@ name: CI/CD for React Spring Boot Monorepo
 on:
   push:
     branches: [ main ]
-
+    paths: # Trigger only if changes in these paths
+      - 'apps/frontend/**'
+      - 'apps/backend/**'
+      - '.github/workflows/main.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'apps/frontend/**'
+      - 'apps/backend/**'
+      - '.github/workflows/main.yml'
 
 jobs:
   # Backend Jobs
   build-test-backend:
     name: Build and Test Backend
     runs-on: ubuntu-latest
-    # Run only if changes in backend directory or workflow file
-    if: github.event_name == 'push' # Simplified condition
+    if: github.event_name == 'push' # Simplified for debugging Gradle - REVISIT LATER
     defaults:
       run:
         working-directory: ./apps/backend
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with: # ensure working-directory applies to actions/checkout too if needed, or use full paths
-          fetch-depth: 0 # For analyzing changed files if needed by other tools
+        with:
+          fetch-depth: 0
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
-          cache: 'gradle' # or 'gradle'
+          cache: 'gradle'
 
-      - name: Build and test Backend
-        run: ./gradlew bootJar -x test --info # Skipping tests here for brevity, enable them
+      - name: List files in backend directory (for debugging)
+        run: ls -la
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Build Backend with Gradle
+        run: ./gradlew bootJar -x test --info # Skipping tests for brevity
 
       - name: Upload backend JAR
         uses: actions/upload-artifact@v4
@@ -40,7 +54,7 @@ jobs:
   dockerize-push-backend:
     name: Dockerize and Push Backend
     needs: build-test-backend
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' # Only on push to main
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -50,7 +64,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: backend-jar
-          path: apps/backend/build/libs # Dockerfile expects JAR here relative to its build context
+          path: apps/backend/build/libs # Dockerfile expects JAR here
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -64,15 +78,16 @@ jobs:
       - name: Build and push Backend Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./apps/backend # Build context is the backend app directory
+          context: ./apps/backend
           file: ./apps/backend/Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/my-app-backend:latest
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/ise-job-board-backend:latest # ADJUST IMAGE NAME
 
   # Frontend Jobs
   build-test-frontend:
     name: Build and Test Frontend
     runs-on: ubuntu-latest
+    # REVISIT IF CONDITION LATER
     if: |
       github.event_name == 'pull_request' ||
       (github.event_name == 'push' && (
@@ -94,37 +109,32 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: apps/frontend/package-lock.json # or yarn.lock
+          cache-dependency-path: apps/frontend/package-lock.json
 
       - name: Install Frontend Dependencies
-        run: npm ci # or yarn install --frozen-lockfile
+        run: npm ci
 
-      - name: Run Frontend Tests
-        run: npm test -- --watchAll=false # or yarn test --watchAll=false
+      - name: Run Frontend Tests (optional)
+        run: npm test -- --watchAll=false # Ensure tests are set up
 
-      - name: Build Frontend App
-        run: npm run build # or yarn build
+      - name: Build Frontend App (for testing/artifact)
+        run: npm run build # Vite outputs to 'dist'
 
-      - name: Upload frontend build
+      - name: Upload frontend dist (optional, for inspection)
         uses: actions/upload-artifact@v4
         with:
-          name: frontend-build
+          name: frontend-dist
           path: apps/frontend/dist
 
   dockerize-push-frontend:
-    name: Dockerize and Push Frontend (React static assets)
-    needs: build-test-frontend
+    name: Dockerize and Push Frontend
+    needs: build-test-frontend # Ensures tests pass and build is possible before dockerizing
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Download frontend build
-        uses: actions/download-artifact@v4
-        with:
-          name: frontend-build
-          path: apps/frontend/build # Dockerfile expects build folder here
+        # No need to download frontend build artifact if Dockerfile builds from source
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -135,47 +145,42 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push Frontend Docker image (React assets only)
+      - name: Build and push Frontend Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./apps/frontend # Build context for frontend
+          context: ./apps/frontend # Dockerfile will build from source within this context
           file: ./apps/frontend/Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/my-app-frontend-assets:latest # Image contains only static assets
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/ise-job-board-frontend:latest # ADJUST IMAGE NAME
 
-  # Deployment Job (runs after both backend and frontend images are pushed)
+  # Deployment Job
   deploy-to-vps:
     name: Deploy to VPS
-    needs: [dockerize-push-backend, dockerize-push-frontend] # Depends on both image pushes
+    needs: [dockerize-push-backend, dockerize-push-frontend]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code (to get docker-compose.yml for VPS)
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Copy docker-compose.yml to VPS and Deploy
+      - name: Deploy to VPS via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
-          port: 22 # Default SSH port
+          port: 22
           script: |
-            # Create deployment directory if it doesn't exist
+            echo "Ensuring deployment directory exists..."
             mkdir -p ${{ secrets.VPS_DEPLOY_PATH }}
             cd ${{ secrets.VPS_DEPLOY_PATH }}
 
-            # Copy the docker-compose.yml from the repo to the VPS
-            # (Alternatively, have this file already on the VPS and just update images)
-            # For this example, we'll assume you might update it via git.
-            # Or, use scp action to copy it directly:
-            # scp .github/deployment/docker-compose.vps.yml ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_DEPLOY_PATH }}/docker-compose.yml
-
-            echo "Pulling latest images..."
+            echo "Pulling latest Docker images for all services..."
             docker compose -f ${{ secrets.VPS_DEPLOY_PATH }}/docker-compose.yml pull
 
-            echo "Restarting services..."
+            echo "Restarting services with Docker Compose..."
             docker compose -f ${{ secrets.VPS_DEPLOY_PATH }}/docker-compose.yml up -d --remove-orphans
 
-            echo "Cleaning up old images..."
+            echo "Cleaning up old Docker images..."
             docker image prune -af
+            echo "Deployment complete!"
