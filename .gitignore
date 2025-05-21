@@ -7,7 +7,12 @@
 apps/backend/target/
 apps/backend/.mvn/
 apps/backend/build/
+
+# Ignore all .jar files...
 *.jar
+# ...EXCEPT for the gradle-wrapper.jar, which is needed
+!apps/backend/gradle/wrapper/gradle-wrapper.jar
+
 *.war
 *.ear
 
