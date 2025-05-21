@@ -3,8 +3,16 @@ name: CI/CD for React Spring Boot Monorepo
 on:
   push:
     branches: [ main ]
+    paths: # Trigger only if changes in these paths
+      - 'apps/frontend/**'
+      - 'apps/backend/**'
+      - '.github/workflows/main.yml'
   pull_request:
     branches: [ main ]
+    paths:
+      - 'apps/frontend/**'
+      - 'apps/backend/**'
+      - '.github/workflows/main.yml'
 
 jobs:
   # Backend Jobs
@@ -35,16 +43,16 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
-          cache: 'maven' # or 'gradle'
+          cache: 'gradle' # or 'gradle'
 
       - name: Build and test Backend
-        run: ./mvnw package -DskipTests # Skipping tests here for brevity, enable them
+        run: ./gradlew bootJar -x test --info # Skipping tests here for brevity, enable them
 
       - name: Upload backend JAR
         uses: actions/upload-artifact@v4
         with:
           name: backend-jar
-          path: apps/backend/target/*.jar
+          path: apps/backend/build/libs/*.jar
 
   dockerize-push-backend:
     name: Dockerize and Push Backend
@@ -59,7 +67,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: backend-jar
-          path: apps/backend/target # Dockerfile expects JAR here relative to its build context
+          path: apps/backend/build/libs # Dockerfile expects JAR here relative to its build context
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -118,7 +126,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: frontend-build
-          path: apps/frontend/build
+          path: apps/frontend/dist
 
   dockerize-push-frontend:
     name: Dockerize and Push Frontend (React static assets)
