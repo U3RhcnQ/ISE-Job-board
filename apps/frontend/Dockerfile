@@ -11,7 +11,7 @@ RUN npm run build
 FROM nginx:stable-alpine
 # Nginx will be configured on the VPS directly or via Docker Compose with a custom config
 # This Dockerfile just prepares the static content
-COPY --from=builder /app/build /usr/share/nginx/html
+COPY --from=builder /app/dist /usr/share/nginx/html
 EXPOSE 80
 # The CMD will be handled by the Docker Compose Nginx service using a custom config
 # CMD ["nginx", "-g", "daemon off;"]
