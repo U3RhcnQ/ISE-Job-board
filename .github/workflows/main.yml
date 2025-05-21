@@ -11,15 +11,7 @@ jobs:
     name: Build and Test Backend
     runs-on: ubuntu-latest
     # Run only if changes in backend directory or workflow file
-    if: |
-      github.event_name == 'pull_request' ||
-      (github.event_name == 'push' && (
-        startsWith(github.head_commit.message, '[backend]') ||
-        contains(join(github.event.commits.*.modified, ' '), 'apps/backend/') ||
-        contains(join(github.event.commits.*.added, ' '), 'apps/backend/') ||
-        contains(join(github.event.commits.*.removed, ' '), 'apps/backend/') ||
-        contains(join(github.event.commits.*.modified, ' '), '.github/workflows/main.yml')
-      ))
+    if: github.event_name == 'push' # Simplified condition
     defaults:
       run:
         working-directory: ./apps/backend
