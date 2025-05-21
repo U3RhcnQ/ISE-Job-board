@@ -3,7 +3,7 @@ name: CI/CD for React Spring Boot Monorepo
 on:
   push:
     branches: [ main ]
-    paths: # Trigger only if changes in these paths
+    paths: # Trigger only if changes in these paths - This still helps avoid unnecessary runs
       - 'apps/frontend/**'
       - 'apps/backend/**'
       - '.github/workflows/main.yml'
@@ -19,7 +19,8 @@ jobs:
   build-test-backend:
     name: Build and Test Backend
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' # Simplified for debugging Gradle - REVISIT LATER
+    # We can revert to the more specific 'if' condition later
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
     defaults:
       run:
         working-directory: ./apps/backend
@@ -39,11 +40,14 @@ jobs:
       - name: List files in backend directory (for debugging)
         run: ls -la
 
+      - name: List files in gradle/wrapper directory (for debugging)
+        run: ls -la gradle/wrapper
+
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
       - name: Build Backend with Gradle
-        run: ./gradlew bootJar -x test --info # Skipping tests for brevity
+        run: ./gradlew bootJar -x test --info
 
       - name: Upload backend JAR
         uses: actions/upload-artifact@v4
@@ -64,7 +68,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: backend-jar
-          path: apps/backend/build/libs # Dockerfile expects JAR here
+          path: apps/backend/build/libs
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -87,16 +91,8 @@ jobs:
   build-test-frontend:
     name: Build and Test Frontend
     runs-on: ubuntu-latest
-    # REVISIT IF CONDITION LATER
-    if: |
-      github.event_name == 'pull_request' ||
-      (github.event_name == 'push' && (
-        startsWith(github.head_commit.message, '[frontend]') ||
-        contains(join(github.event.commits.*.modified, ' '), 'apps/frontend/') ||
-        contains(join(github.event.commits.*.added, ' '), 'apps/frontend/') ||
-        contains(join(github.event.commits.*.removed, ' '), 'apps/frontend/') ||
-        contains(join(github.event.commits.*.modified, ' '), '.github/workflows/main.yml')
-      ))
+    # Simplified 'if' condition to run on push or PR for now
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
     defaults:
       run:
         working-directory: ./apps/frontend
@@ -128,13 +124,12 @@ jobs:
 
   dockerize-push-frontend:
     name: Dockerize and Push Frontend
-    needs: build-test-frontend # Ensures tests pass and build is possible before dockerizing
+    needs: build-test-frontend
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        # No need to download frontend build artifact if Dockerfile builds from source
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -148,7 +143,7 @@ jobs:
       - name: Build and push Frontend Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./apps/frontend # Dockerfile will build from source within this context
+          context: ./apps/frontend
           file: ./apps/frontend/Dockerfile
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/ise-job-board-frontend:latest # ADJUST IMAGE NAME
