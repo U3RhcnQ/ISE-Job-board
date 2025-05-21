@@ -3,16 +3,7 @@ name: CI/CD for React Spring Boot Monorepo
 on:
   push:
     branches: [ main ]
-    paths: # Trigger only if changes in these paths
-      - 'apps/frontend/**'
-      - 'apps/backend/**'
-      - '.github/workflows/main.yml'
-  pull_request:
-    branches: [ main ]
-    paths:
-      - 'apps/frontend/**'
-      - 'apps/backend/**'
-      - '.github/workflows/main.yml'
+
 
 jobs:
   # Backend Jobs
