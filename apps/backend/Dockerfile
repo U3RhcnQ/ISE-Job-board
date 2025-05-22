@@ -27,6 +27,12 @@ WORKDIR /app
 # Create a non-root user and group for better security
 ARG UID=1001
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup -u $UID
+
+# Install curl for healthcheck before switshing to normal user
+USER root
+RUN apk add --no-cache curl
+
+# Switch back to normal user
 USER appuser
 
 # Copy the JAR file from the builder stage.
