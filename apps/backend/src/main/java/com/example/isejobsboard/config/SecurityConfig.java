@@ -14,19 +14,14 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf.disable()) // Disable CSRF, common for stateless APIs
+            .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(authorize -> authorize
-                .requestMatchers("/api/v1/**", "/actuator/**").permitAll() // Permit your API and actuator
-                .anyRequest().permitAll() // TEMPORARILY PERMIT EVERYTHING ELSE FOR TESTING
-                                           // We will tighten this later if needed.
+                .requestMatchers("/api/v1/**", "/actuator/**").permitAll()
+                .anyRequest().permitAll() // Temporarily permit all for testing
             )
-            // Ensure stateless session management, as we're not using traditional logins
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            // Disable HTTP Basic authentication
             .httpBasic(basic -> basic.disable())
-            // Disable Form-based login
             .formLogin(form -> form.disable());
-
         return http.build();
     }
 }
