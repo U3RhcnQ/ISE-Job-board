@@ -16,7 +16,7 @@ public class SecurityConfig {
         http
             .authorizeHttpRequests(authorizeRequests ->
                 authorizeRequests
-                    .requestMatchers("/api/v1/**").permitAll() // Allow all requests to /api/v1/**
+                    .requestMatchers("/api/v1/**", "/actuator/health").permitAll() // Allow all requests to /api/v1/**
                     .anyRequest().authenticated() // All other requests require authentication (if any)
             )
             .httpBasic(withDefaults()); // Keep basic auth for other potential endpoints, or remove if not needed
