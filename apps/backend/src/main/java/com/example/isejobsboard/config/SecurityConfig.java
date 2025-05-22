@@ -5,6 +5,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.UserDetailsService; // <-- Add this import
+import org.springframework.security.provisioning.InMemoryUserDetailsManager; // <-- Add this import
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
@@ -16,12 +18,19 @@ public class SecurityConfig {
         http
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(authorize -> authorize
-                .requestMatchers("/api/v1/**", "/actuator/**").permitAll()
-                .anyRequest().permitAll() // Temporarily permit all for testing
+                .requestMatchers("/api/v1/**", "/actuator/**").permitAll() // Permit your API and actuator
+                .anyRequest().permitAll() // TEMPORARILY PERMIT EVERYTHING ELSE FOR TESTING
             )
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .httpBasic(basic -> basic.disable())
             .formLogin(form -> form.disable());
         return http.build();
+    }
+
+    @Bean
+    public UserDetailsService userDetailsService() {
+        // Provides an empty user manager. No users are defined.
+        // This is sufficient to prevent UserDetailsServiceAutoConfiguration from kicking in. [cite: 61, 62]
+        return new InMemoryUserDetailsManager();
     }
 }
