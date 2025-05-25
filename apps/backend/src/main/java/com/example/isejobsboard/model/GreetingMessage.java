@@ -38,3 +38,4 @@ public class GreetingMessage {
     public void setContent(String content) {
         this.content = content;
     }
+}
