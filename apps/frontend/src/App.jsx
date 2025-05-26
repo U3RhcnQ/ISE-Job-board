@@ -82,7 +82,7 @@ function App() {
             <main className="w-full max-w-7xl mx-auto p-2 md:p-4">
                 <Routes>
                     {/* The root path "/" should probably go to the login or jobs page */}
-                    <Route path="/" element={<Jobs />} />
+                    <Route path="/" element={<Login />} />
                     <Route path="/login" element={<Login />} />
                     <Route path="/jobs" element={<Jobs />} />
                     <Route path="/ranking" element={<Ranking />} />
