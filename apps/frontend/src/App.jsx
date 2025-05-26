@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
+import {Button} from "@mui/material";
+import AccessAlarmIcon from '@mui/icons-material/AccessAlarm';
 
 function App() {
   const [message, setMessage] = useState('');
@@ -14,11 +16,16 @@ function App() {
   }, []);
 
   return (
-    <div className="App">
-      <header className="App-header">
-        <p>Frontend says: {message}</p>
-      </header>
-    </div>
+      <div>
+          <h1>Welcome to My MUI App</h1>
+          <Button variant="contained" startIcon={<AccessAlarmIcon />}>
+              Hello World
+          </Button>
+          <header className="App-header">
+              <p>Frontend says: {message}</p>
+          </header>
+      </div>
+
   );
 }
 
