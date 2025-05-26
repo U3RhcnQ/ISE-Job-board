@@ -1,34 +1,113 @@
 package com.example.isejobsboard.security;
 
 import java.security.SecureRandom;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.Base64;
 
 public class Authenticator {
     public Authenticator() {}
 
-    public void createToken() {
+    /**
+     * Creates a session token for a user in the database.
+     * @param userId
+     * @throws SQLException
+     */
+    public void createToken(int userId) throws SQLException {
         String token = _buildToken();
 
-        
+        // Connecting to the database table
+        Connection tokenConnection = DriverManager.getConnection(
+                "jdbc:mysql://localhost:3306/login_sessions",
+                "root",
+                ""
+        );
+
+        StringBuilder queryBuilder = new StringBuilder();
+
+        // Using StringBuilder because concatenation was throwing a syntax error
+        queryBuilder.append("INSERT INTO login_sessions(user_id, token) VALUES (");
+        queryBuilder.append(Integer.toString(userId));
+        queryBuilder.append(", '");
+        queryBuilder.append(token);
+        queryBuilder.append("');");
+
+        String query = queryBuilder.toString();
+
+        // Inserting our token into the database
+        try {
+            Statement tokenStatement = tokenConnection.createStatement();
+            tokenStatement.executeQuery(query);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
-    public void destroyToken(String token) {
+    /**
+     * Removes the session token from the database.
+     * @param token
+     * @throws SQLException
+     */
+    public void destroyToken(String token) throws SQLException {
+        // Connecting to the database table
+        Connection tokenConnection = DriverManager.getConnection(
+                "jdbc:mysql://localhost:3306/login_sessions",
+                "root",
+                ""
+        );
 
+        StringBuilder queryBuilder = new StringBuilder();
+
+        // Using StringBuilder because concatenation was throwing a syntax error
+        queryBuilder.append("DELETE FROM login_sessions WHERE token = '");
+        queryBuilder.append(token);
+        queryBuilder.append("';");
+
+        String query = queryBuilder.toString();
+
+        // Deleting our token from the database
+        try {
+            Statement tokenStatement = tokenConnection.createStatement();
+            tokenStatement.executeQuery(query);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
-    public boolean isTokenValid(String token) {
+    /**
+     * Checks if a session token is a valid session token.
+     * @param token
+     * @return
+     * @throws SQLException
+     */
+    public boolean isTokenValid(String token) throws SQLException {
         Connection tokensConnection = DriverManager.getConnection(
                 "jdbc:mysql://localhost:3306/login_sessions",
                 "root",
                 ""
         );
 
-        Statement tokensStatement = tokensConnection.createStatement();
-        ResultSet tokensResultSet = tokensStatement.executeQuery("SELECT * FROM login_sessions");
+        StringBuilder queryBuilder = new StringBuilder();
+
+        queryBuilder.append("SELECT * FROM login_sessions WHERE token = '");
+        queryBuilder.append(token);
+        queryBuilder.append("';");
+
+        String query = queryBuilder.toString();
+
+        try {
+            Statement tokensStatement = tokensConnection.createStatement();
+            ResultSet tokensResultSet = tokensStatement.executeQuery(query);
+
+            while (tokensResultSet.next()) {
+                if (tokensResultSet.getString("token").equals(token)) {
+                    return true;
+                }
+            }
+
+            return false;
+        } catch (RuntimeException e) {
+            throw new SQLException(e);
+        }
     }
 
     /**
