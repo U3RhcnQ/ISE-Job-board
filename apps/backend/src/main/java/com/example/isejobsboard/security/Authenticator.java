@@ -5,19 +5,17 @@ import java.sql.*;
 import java.util.Base64;
 
 public class Authenticator {
-    public Authenticator() {}
-
     /**
      * Creates a session token for a user in the database.
      * @param userId
      * @throws SQLException
      */
-    public void createToken(int userId) throws SQLException {
+    public static String createToken(int userId) throws SQLException {
         String token = _buildToken();
 
         // Connecting to the database table
         Connection tokenConnection = DriverManager.getConnection(
-                "jdbc:mysql://localhost:3306/login_sessions",
+                "jdbc:mysql://isejobsboard.petr.ie:3306/login_sessions",
                 "root",
                 ""
         );
@@ -37,6 +35,8 @@ public class Authenticator {
         try {
             Statement tokenStatement = tokenConnection.createStatement();
             tokenStatement.executeQuery(query);
+
+            return token;
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -47,10 +47,10 @@ public class Authenticator {
      * @param token
      * @throws SQLException
      */
-    public void destroyToken(String token) throws SQLException {
+    public static void destroyToken(String token) throws SQLException {
         // Connecting to the database table
         Connection tokenConnection = DriverManager.getConnection(
-                "jdbc:mysql://localhost:3306/login_sessions",
+                "jdbc:mysql://isejobsboard.petr.ie:3306/login_sessions",
                 "root",
                 ""
         );
@@ -79,9 +79,9 @@ public class Authenticator {
      * @return
      * @throws SQLException
      */
-    public boolean isTokenValid(String token) throws SQLException {
+    public static boolean isTokenValid(String token) throws SQLException {
         Connection tokensConnection = DriverManager.getConnection(
-                "jdbc:mysql://localhost:3306/login_sessions",
+                "jdbc:mysql://isejobsboard.petr.ie:3306/login_sessions",
                 "root",
                 ""
         );
@@ -113,7 +113,7 @@ public class Authenticator {
     /**
      * Builds a cryptographically random token which can be used for user authentication.
      */
-    private String _buildToken() {
+    private static String _buildToken() {
         SecureRandom random = new SecureRandom();
         Base64.Encoder encoder = Base64.getUrlEncoder().withoutPadding();
 
