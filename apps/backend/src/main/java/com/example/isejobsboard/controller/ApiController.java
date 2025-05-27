@@ -12,9 +12,9 @@ import com.example.isejobsboard.security.Authenticator;
 @RestController
 @RequestMapping("/api/v1")
 public class ApiController {
-    private final String username = "root";
-    private final String password = "AX10kl2-s(6b";
+    private static final Map<String, String> env = System.getenv();
 
+    /*
     private final GreetingMessageRepository greetingMessageRepository;
 
     @Autowired
@@ -37,6 +37,7 @@ public class ApiController {
         }
         return Map.of("message", "Hello from Spring Boot Backend! and: " + dbMessage);
     }
+     */
 
     @PostMapping("/login")
     public String login(@RequestBody UserLogin body) {
@@ -55,8 +56,8 @@ public class ApiController {
         try {
             Connection userConnection = DriverManager.getConnection(
                     "jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
-                    username,
-                    password
+                    env.get("dbUsername"),
+                    env.get("dbPassword")
             );
 
             Statement userStatement = userConnection.createStatement();
@@ -111,8 +112,8 @@ public class ApiController {
         try {
             Connection userConnection = DriverManager.getConnection(
                     "jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
-                    username,
-                    password
+                    env.get("dbUsername"),
+                    env.get("dbPassword")
             );
 
             Statement userStatement = userConnection.createStatement();
