@@ -1,5 +1,5 @@
 # Stage 1: Build React App
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 WORKDIR /app
 COPY package.json package-lock.json ./
 # If using yarn: COPY yarn.lock ./
@@ -9,9 +9,18 @@ RUN npm run build
 
 # Stage 2: Serve with Nginx
 FROM nginx:stable-alpine
-# Nginx will be configured on the VPS directly or via Docker Compose with a custom config
-# This Dockerfile just prepares the static content
+
+# Remove default Nginx configuration (good practice before copying your own)
+RUN rm -f /etc/nginx/conf.d/default.conf
+
+# Copy your custom Nginx configuration file (created in Step 1)
+# This will replace the default configuration Nginx uses.
+COPY nginx-frontend.conf /etc/nginx/conf.d/default.conf
+
+# Copy the build output from the 'builder' stage to Nginx's web root
 COPY --from=builder /app/dist /usr/share/nginx/html
+
 EXPOSE 80
-# The CMD will be handled by the Docker Compose Nginx service using a custom config
-# CMD ["nginx", "-g", "daemon off;"]
+
+# Ensure Nginx starts when the container launches
+CMD ["nginx", "-g", "daemon off;"]

@@ -83,6 +83,30 @@ public class ApiController {
 
         }
     }
+    @PostMapping("add-company")
+    public void addCompany(@RequestBody Company body){
+        StringBuilder queryBuilder = new StringBuilder();
+        queryBuilder.append("INSERT INTO company (name, website, champion) VALUES(");
+        queryBuilder.append(body.getName() +" ");
+        queryBuilder.append(body.getWebsite() +" ");
+        queryBuilder.append(body.getChampion() +" ");
+
+        String query = queryBuilder.toString();
+
+        try{
+        Connection userConnection = DriverManager.getConnection(
+                "jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
+                username,
+                password
+
+        );
+        Statement userStatement = userConnection.createStatement();
+        ResultSet userResultSet = userStatement.executeQuery(query);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+
+    }
 
     @PostMapping("/logout")
     public ResponseEntity<Object> logout(@RequestBody UserLogout user) {
