@@ -1,10 +1,14 @@
 package com.example.isejobsboard.controller;
 
+import com.example.isejobsboard.model.GreetingMessage;
+import com.example.isejobsboard.repository.GreetingMessageRepository;
 import com.example.isejobsboard.security.SHA256;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.sql.*;
 
+import java.util.List;
 import java.util.Map;
 import com.example.isejobsboard.controller.schemas.*;
 import com.example.isejobsboard.security.Authenticator;
@@ -74,6 +78,30 @@ public class ApiController {
             e.printStackTrace();
             return "500";
         }
+    }
+    @PostMapping("add-company")
+    public void addCompany(@RequestBody Company body){
+        StringBuilder queryBuilder = new StringBuilder();
+        queryBuilder.append("INSERT INTO company (name, website, champion) VALUES(");
+        queryBuilder.append(body.getName() +" ");
+        queryBuilder.append(body.getWebsite() +" ");
+        queryBuilder.append(body.getChampion() +" ");
+
+        String query = queryBuilder.toString();
+
+        try{
+        Connection userConnection = DriverManager.getConnection(
+                "jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
+                username,
+                password
+
+        );
+        Statement userStatement = userConnection.createStatement();
+        ResultSet userResultSet = userStatement.executeQuery(query);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+
     }
 
     @PostMapping("/logout")
