@@ -34,8 +34,7 @@ dependencies {
 	testImplementation 'org.springframework.security:spring-security-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
-	runtimeOnly 'com.mysql:mysql-connector-j' // For MySQL 8+
-
+	implementation 'com.mysql:mysql-connector-j:9.3.0'
 }
 
 tasks.named('test') {
