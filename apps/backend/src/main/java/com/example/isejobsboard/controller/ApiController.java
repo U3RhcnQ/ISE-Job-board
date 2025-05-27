@@ -11,6 +11,8 @@ import com.example.isejobsboard.security.Authenticator;
 @RestController
 @RequestMapping("/api/v1") // This is the base path for all endpoints in this controller
 public class ApiController {
+    private final String username = "root";
+    private final String password = "AX10kl2-s(6b";
 
     @GetMapping("/greeting")
     public Map<String, String> getGreeting() {
@@ -21,9 +23,9 @@ public class ApiController {
     public String login(@RequestBody UserLogin body) {
         StringBuilder queryBuilder = new StringBuilder();
 
-        queryBuilder.append("SELECT * FROM users WHERE email=");
+        queryBuilder.append("SELECT * FROM users WHERE email='");
         queryBuilder.append(body.email);
-        queryBuilder.append(";");
+        queryBuilder.append("';");
 
         String dynamic_salt = body.email;
         String static_salt = "892225800";
@@ -33,9 +35,9 @@ public class ApiController {
 
         try {
             Connection userConnection = DriverManager.getConnection(
-                    "jdbc:mysql://isejobsboard.petr.ie:3306/users",
-                    "jobuser",
-                    "U9o8?=3LRJIu"
+                    "jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
+                    username,
+                    password
             );
 
             Statement userStatement = userConnection.createStatement();
@@ -49,12 +51,13 @@ public class ApiController {
 
             return "404";
         } catch (SQLException e) {
+            e.printStackTrace();
             return "500";
         }
     }
 
     @PostMapping("/logout")
-    public int logout(UserLogout user) {
+    public int logout(@RequestBody UserLogout user) {
         String token = user.getToken();
 
         try {
@@ -65,34 +68,40 @@ public class ApiController {
                 return 401;
             }
         } catch (SQLException e) {
+            e.printStackTrace();
             return 500;
         }
     }
 
     @PostMapping("/signup")
-    public int signup(UserSignup user) {
+    public int signup(@RequestBody UserSignup user) {
         StringBuilder queryBuilder = new StringBuilder();
+
+        String dynamic_salt = user.email;
+        String static_salt = "892225800";
+        String hashedPassword = SHA256.hash(dynamic_salt + user.password + static_salt);
 
         queryBuilder.append("INSERT INTO users (email, password) VALUES ('");
         queryBuilder.append(user.email);
         queryBuilder.append("', '");
-        queryBuilder.append(user.password);
-        queryBuilder.append("';");
+        queryBuilder.append(hashedPassword);
+        queryBuilder.append("');");
 
         String query = queryBuilder.toString();
 
         try {
             Connection userConnection = DriverManager.getConnection(
-                    "jdbc:mysql://isejobsboard.petr.ie:3306/users",
-                    "jobuser",
-                    "U9o8?=3LRJIu"
+                    "jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
+                    username,
+                    password
             );
 
             Statement userStatement = userConnection.createStatement();
-            userStatement.executeQuery(query);
+            userStatement.executeUpdate(query);
 
             return 200;
         } catch (SQLException e) {
+            e.printStackTrace();
             return 500;
         }
     }

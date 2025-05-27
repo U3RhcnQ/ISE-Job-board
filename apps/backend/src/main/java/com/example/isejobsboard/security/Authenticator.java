@@ -5,6 +5,9 @@ import java.sql.*;
 import java.util.Base64;
 
 public class Authenticator {
+    private static final String username = "root";
+    private static final String password = "AX10kl2-s(6b";
+
     /**
      * Creates a session token for a user in the database.
      * @param userId
@@ -15,26 +18,30 @@ public class Authenticator {
 
         // Connecting to the database table
         Connection tokenConnection = DriverManager.getConnection(
-                "jdbc:mysql://isejobsboard.petr.ie:3306/login_sessions",
-                "root",
-                ""
+                "jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
+                username,
+                password
         );
 
         StringBuilder queryBuilder = new StringBuilder();
 
+        long currentTime = System.currentTimeMillis();
+
         // Using StringBuilder because concatenation was throwing a syntax error
-        queryBuilder.append("INSERT INTO login_sessions(user_id, token) VALUES (");
+        queryBuilder.append("INSERT INTO login_sessions(user_id, token, expiry) VALUES (");
         queryBuilder.append(Integer.toString(userId));
         queryBuilder.append(", '");
         queryBuilder.append(token);
-        queryBuilder.append("');");
+        queryBuilder.append("', '");
+        queryBuilder.append(new Timestamp(currentTime + (3 * 60 * 60 * 1000)));
+        queryBuilder.append("');");;
 
         String query = queryBuilder.toString();
 
         // Inserting our token into the database
         try {
             Statement tokenStatement = tokenConnection.createStatement();
-            tokenStatement.executeQuery(query);
+            tokenStatement.executeUpdate(query);
 
             return token;
         } catch (SQLException e) {
@@ -50,9 +57,9 @@ public class Authenticator {
     public static void destroyToken(String token) throws SQLException {
         // Connecting to the database table
         Connection tokenConnection = DriverManager.getConnection(
-                "jdbc:mysql://isejobsboard.petr.ie:3306/login_sessions",
-                "root",
-                ""
+                "jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
+                username,
+                password
         );
 
         StringBuilder queryBuilder = new StringBuilder();
@@ -67,7 +74,7 @@ public class Authenticator {
         // Deleting our token from the database
         try {
             Statement tokenStatement = tokenConnection.createStatement();
-            tokenStatement.executeQuery(query);
+            tokenStatement.executeUpdate(query);
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -81,9 +88,9 @@ public class Authenticator {
      */
     public static boolean isTokenValid(String token) throws SQLException {
         Connection tokensConnection = DriverManager.getConnection(
-                "jdbc:mysql://isejobsboard.petr.ie:3306/login_sessions",
-                "root",
-                ""
+                "jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
+                username,
+                password
         );
 
         StringBuilder queryBuilder = new StringBuilder();
@@ -99,8 +106,12 @@ public class Authenticator {
             ResultSet tokensResultSet = tokensStatement.executeQuery(query);
 
             while (tokensResultSet.next()) {
-                if (tokensResultSet.getString("token").equals(token)) {
-                    return true;
+                if (tokensResultSet.getTimestamp("expiry").after(new Timestamp(System.currentTimeMillis()))) {
+                    if (tokensResultSet.getString("token").equals(token)) {
+                        return true;
+                    }
+                } else {
+                    destroyToken(token);
                 }
             }
 
