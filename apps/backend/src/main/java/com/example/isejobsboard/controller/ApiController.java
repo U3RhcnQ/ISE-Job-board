@@ -1,7 +1,9 @@
 package com.example.isejobsboard.controller;
 
 import com.example.isejobsboard.model.GreetingMessage;
+import com.example.isejobsboard.model.Student;
 import com.example.isejobsboard.repository.GreetingMessageRepository;
+import com.example.isejobsboard.services.StudentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -35,5 +37,12 @@ public class ApiController {
             dbMessage = messages.get(0).getContent();
         }
         return Map.of("message", "Hello from Spring Boot Backend! and: " + dbMessage);
+    }
+    @Autowired
+    private StudentService studentService;
+
+    @GetMapping("/students")
+    public List<Student> getAllStudent(){
+        return studentService.getAllStudents();
     }
 }
