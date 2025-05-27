@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.sql.*;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import com.example.isejobsboard.controller.schemas.*;
@@ -17,8 +18,9 @@ import com.example.isejobsboard.security.Authenticator;
 @RestController
 @RequestMapping("/api/v1")
 public class ApiController {
-    private final String username = "root";
-    private final String password = "AX10kl2-s(6b";
+
+    private static final Map<String, String> env = System.getenv();
+
     private final String dbUrl = "jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board";
 
     private final GreetingMessageRepository greetingMessageRepository;
@@ -55,7 +57,7 @@ public class ApiController {
         String hashedPassword = SHA256.hash(dynamic_salt + body.password + static_salt);
 
         // Use try-with-resources for automatic closing of database connections
-        try (Connection userConnection = DriverManager.getConnection(dbUrl, username, password);
+        try (Connection userConnection = DriverManager.getConnection(dbUrl, env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
              PreparedStatement userStatement = userConnection.prepareStatement(query)) {
 
             // Safely set the email parameter
@@ -94,9 +96,10 @@ public class ApiController {
 
         try{
         Connection userConnection = DriverManager.getConnection(
-               "jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
-                    env.get("dbUsername"),
-                    env.get("dbPassword")
+                "jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
+                env.get("MYSQL_USER_NAME"),
+                env.get("MYSQL_USER_PASSWORD")
+
         );
         Statement userStatement = userConnection.createStatement();
         ResultSet userResultSet = userStatement.executeQuery(query);
@@ -134,7 +137,7 @@ public class ApiController {
         String query = "INSERT INTO users (email, password) VALUES (?, ?)";
 
         // Use try-with-resources for automatic resource management
-        try (Connection userConnection = DriverManager.getConnection(dbUrl, username, password);
+        try (Connection userConnection = DriverManager.getConnection(dbUrl, env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
              PreparedStatement userStatement = userConnection.prepareStatement(query)) {
 
             // Safely set the parameters
@@ -153,67 +156,52 @@ public class ApiController {
     }
 
     @GetMapping("/profile")
-    public ResponseEntity<Object> getUserInfo(@RequestBody User user) {
-        String token = user.getToken();
-        String id;
-        try {
-            if (Authenticator.isTokenValid(token)) {
-                //SELECT * FROM users WHERE email = ?"
-                String query = "SELECT * FROM current_session WHERE token = ?;";
-                try (Connection userConnection = DriverManager.getConnection(dbUrl, username, password);
-                     PreparedStatement userStatement = userConnection.prepareStatement(query)) {
+    public ResponseEntity<Object> getUserProfile(@RequestHeader("Authorization") String authHeader) throws SQLException {
 
-                    // Safely set the token parameter
-                    userStatement.setString(1, token);
+        // 1. Validate the Authorization header format ("Bearer <token>")
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(400).body(Map.of("error", "Malformed Authorization header."));
+        }
 
-                    // Remember a query can fail !
-                    try (ResultSet userResultSet = userStatement.executeQuery()) {
+        // 2. Extract the token from the header
+        String token = authHeader.substring(7); // "Bearer " is 7 characters
 
-                       if(userResultSet == null){
-                           return ResponseEntity.status(401).body(Map.of("error", "Invalid token"));
-                       }
+        if (!Authenticator.isTokenValid(token)) {
+            return ResponseEntity.status(401).body(Map.of("error", "Invalid Token"));
+        }
 
-                        id = Integer.toString(userResultSet.getInt("id"));
-                    }
+        // 3. This single query finds the user associated with a valid, non-expired token
+        String sql = "SELECT u.user_id, u.first_name, u.last_name, u.email, u.access_level " +
+                "FROM users u " +
+                "JOIN login_sessions ls ON u.user_id = ls.user_id " +
+                "WHERE ls.token = ? AND ls.expiry > NOW()";
 
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                    return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
+        try (Connection connection = DriverManager.getConnection(dbUrl,
+                env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+             PreparedStatement statement = connection.prepareStatement(sql)) {
 
+            statement.setString(1, token);
+
+            try (ResultSet rs = statement.executeQuery()) {
+                if (rs.next()) {
+                    // Token is valid and we found the user
+                    Map<String, Object> userData = new HashMap<>();
+
+                    userData.put("user_id", rs.getInt("user_id"));
+                    userData.put("first_name", rs.getString("first_name"));
+                    userData.put("last_name", rs.getString("last_name"));
+                    userData.put("email", rs.getString("email"));
+                    userData.put("access_level", rs.getString("access_level"));
+
+                    return ResponseEntity.ok(userData);
+                } else {
+                    // Token is invalid, expired, or doesn't exist
+                    return ResponseEntity.status(401).body(Map.of("error", "Unauthorized: Invalid or expired token."));
                 }
-                query = "SELECT * FROM user WHERE id = ?";
-                try (Connection userConnection = DriverManager.getConnection(dbUrl, username, password);
-                     PreparedStatement userStatement = userConnection.prepareStatement(query)) {
-
-                    // Safely set the token parameter
-                    userStatement.setString(1, id);
-
-                    // Remember a query can fail !
-                    try (ResultSet userResultSet = userStatement.executeQuery()) {
-
-                        if(userResultSet == null){
-                            return ResponseEntity.status(401).body(Map.of("error", "Invalid token"));
-                        }
-                        String firstName = userResultSet.getString("first_name");
-                        String secondName = userResultSet.getString("second_name");
-                        String email = userResultSet.getString("email");
-                        String level = userResultSet.getString("accessLevel");
-                        return ResponseEntity.ok(Map.of("first_name",firstName, "second_name",secondName,"email", email,"level",level));
-                    }
-
-
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                    return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
-
-                }
-                //login_session
-            } else {
-                return ResponseEntity.status(401).body(Map.of("error", "Invalid or expired token"));
             }
         } catch (SQLException e) {
             e.printStackTrace();
-            return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred during logout."));
+            return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
         }
     }
 }

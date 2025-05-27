@@ -19,8 +19,8 @@ public class Authenticator {
         // Connecting to the database table
         Connection tokenConnection = DriverManager.getConnection(
                 "jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
-                env.get("dbUsername"),
-                env.get("dbPassword")
+                env.get("MYSQL_USER_NAME"),
+                env.get("MYSQL_USER_PASSWORD")
         );
 
         StringBuilder queryBuilder = new StringBuilder();
@@ -58,8 +58,8 @@ public class Authenticator {
         // Connecting to the database table
         Connection tokenConnection = DriverManager.getConnection(
                 "jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
-                env.get("dbUsername"),
-                env.get("dbPassword")
+                env.get("MYSQL_USER_NAME"),
+                env.get("MYSQL_USER_PASSWORD")
         );
 
         StringBuilder queryBuilder = new StringBuilder();
@@ -89,8 +89,8 @@ public class Authenticator {
     public static boolean isTokenValid(String token) throws SQLException {
         Connection tokensConnection = DriverManager.getConnection(
                 "jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
-                env.get("dbUsername"),
-                env.get("dbPassword")
+                env.get("MYSQL_USER_NAME"),
+                env.get("MYSQL_USER_PASSWORD")
         );
 
         StringBuilder queryBuilder = new StringBuilder();
