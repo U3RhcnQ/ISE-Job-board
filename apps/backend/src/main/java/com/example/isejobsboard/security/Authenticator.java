@@ -3,10 +3,10 @@ package com.example.isejobsboard.security;
 import java.security.SecureRandom;
 import java.sql.*;
 import java.util.Base64;
+import java.util.Map;
 
 public class Authenticator {
-    private static final String username = "root";
-    private static final String password = "AX10kl2-s(6b";
+    private static final Map<String, String> env = System.getenv();
 
     /**
      * Creates a session token for a user in the database.
@@ -19,8 +19,8 @@ public class Authenticator {
         // Connecting to the database table
         Connection tokenConnection = DriverManager.getConnection(
                 "jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
-                username,
-                password
+                env.get("dbUsername"),
+                env.get("dbPassword")
         );
 
         StringBuilder queryBuilder = new StringBuilder();
@@ -58,8 +58,8 @@ public class Authenticator {
         // Connecting to the database table
         Connection tokenConnection = DriverManager.getConnection(
                 "jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
-                username,
-                password
+                env.get("dbUsername"),
+                env.get("dbPassword")
         );
 
         StringBuilder queryBuilder = new StringBuilder();
@@ -89,8 +89,8 @@ public class Authenticator {
     public static boolean isTokenValid(String token) throws SQLException {
         Connection tokensConnection = DriverManager.getConnection(
                 "jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
-                username,
-                password
+                env.get("dbUsername"),
+                env.get("dbPassword")
         );
 
         StringBuilder queryBuilder = new StringBuilder();
