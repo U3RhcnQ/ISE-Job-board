@@ -4,7 +4,6 @@ import com.example.isejobsboard.model.GreetingMessage;
 import com.example.isejobsboard.repository.GreetingMessageRepository;
 import com.example.isejobsboard.security.SHA256;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -87,18 +86,17 @@ public class ApiController {
     public void addCompany(@RequestBody Company body){
         StringBuilder queryBuilder = new StringBuilder();
         queryBuilder.append("INSERT INTO company (name, website, champion) VALUES(");
-        queryBuilder.append(body.getName() +" ");
-        queryBuilder.append(body.getWebsite() +" ");
-        queryBuilder.append(body.getChampion() +" ");
+        queryBuilder.append(body.getName() +", ");
+        queryBuilder.append(body.getWebsite() +", ");
+        queryBuilder.append(body.getChampion() +", ");
 
         String query = queryBuilder.toString();
 
         try{
         Connection userConnection = DriverManager.getConnection(
-                "jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
-                username,
-                password
-
+               "jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
+                    env.get("dbUsername"),
+                    env.get("dbPassword")
         );
         Statement userStatement = userConnection.createStatement();
         ResultSet userResultSet = userStatement.executeQuery(query);
@@ -151,6 +149,71 @@ public class ApiController {
         } catch (SQLException e) {
             e.printStackTrace();
             return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred during Signup."));
+        }
+    }
+
+    @GetMapping("/profile")
+    public ResponseEntity<Object> getUserInfo(@RequestBody User user) {
+        String token = user.getToken();
+        String id;
+        try {
+            if (Authenticator.isTokenValid(token)) {
+                //SELECT * FROM users WHERE email = ?"
+                String query = "SELECT * FROM current_session WHERE token = ?;";
+                try (Connection userConnection = DriverManager.getConnection(dbUrl, username, password);
+                     PreparedStatement userStatement = userConnection.prepareStatement(query)) {
+
+                    // Safely set the token parameter
+                    userStatement.setString(1, token);
+
+                    // Remember a query can fail !
+                    try (ResultSet userResultSet = userStatement.executeQuery()) {
+
+                       if(userResultSet == null){
+                           return ResponseEntity.status(401).body(Map.of("error", "Invalid token"));
+                       }
+
+                        id = Integer.toString(userResultSet.getInt("id"));
+                    }
+
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
+
+                }
+                query = "SELECT * FROM user WHERE id = ?";
+                try (Connection userConnection = DriverManager.getConnection(dbUrl, username, password);
+                     PreparedStatement userStatement = userConnection.prepareStatement(query)) {
+
+                    // Safely set the token parameter
+                    userStatement.setString(1, id);
+
+                    // Remember a query can fail !
+                    try (ResultSet userResultSet = userStatement.executeQuery()) {
+
+                        if(userResultSet == null){
+                            return ResponseEntity.status(401).body(Map.of("error", "Invalid token"));
+                        }
+                        String firstName = userResultSet.getString("first_name");
+                        String secondName = userResultSet.getString("second_name");
+                        String email = userResultSet.getString("email");
+                        String level = userResultSet.getString("accessLevel");
+                        return ResponseEntity.ok(Map.of("first_name",firstName, "second_name",secondName,"email", email,"level",level));
+                    }
+
+
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
+
+                }
+                //login_session
+            } else {
+                return ResponseEntity.status(401).body(Map.of("error", "Invalid or expired token"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred during logout."));
         }
     }
 }
