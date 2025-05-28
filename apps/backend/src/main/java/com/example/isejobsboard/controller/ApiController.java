@@ -241,10 +241,8 @@ public class ApiController {
                 if (accessLevel.isEmpty()) {
                     return ResponseEntity.status(500).body(Map.of("error", "An internal server error occured."));
                 } else {
-                    response.put("access_level", accessLevel);
+                    return ResponseEntity.ok(Map.of("access_level", accessLevel));
                 }
-
-                return ResponseEntity.ok(response);
             } else {
                 return ResponseEntity.status(401).body(Map.of("error", "Unauthorized: Invalid or expired token"));
             }
