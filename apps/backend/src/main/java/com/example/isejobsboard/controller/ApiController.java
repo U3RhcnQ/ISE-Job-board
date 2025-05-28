@@ -223,4 +223,28 @@ public class ApiController {
             return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
         }
     }
+
+    @GetMapping("/access")
+    public ResponseEntity<Object> getAccessLevel(@RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).body(Map.of("error", "Malformed Authorization header."));
+        }
+
+        String token = authHeader.substring(7);
+
+        try {
+            if (Authenticator.isTokenValid(token)) {
+                Map<String, String> response = new HashMap<>();
+
+                response.put("access_level", Authenticator.getAccessLevel(token));
+
+                return ResponseEntity.ok(response);
+            } else {
+                return ResponseEntity.status(401).body(Map.of("error", "Unauthorized: Invalid or expired token"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
+        }
+    }
 }

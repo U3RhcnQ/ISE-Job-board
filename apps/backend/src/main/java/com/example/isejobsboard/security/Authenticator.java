@@ -124,40 +124,63 @@ public class Authenticator {
         }
     }
 
+    public static int getUserIdFromToken(String token) throws SQLException {
+        // Assume token is validated when called, we're all reasonable people here
+        try (Connection con = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board", env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+             PreparedStatement statement = con.prepareStatement("SELECT user_id FROM login_sessions WHERE token = ?");) {
+
+            statement.setString(1, token);
+
+            ResultSet rs = statement.executeQuery();
+
+            if (rs.next()) {
+                return rs.getInt("user_id");
+            }
+        }
+
+        return -1;
+    }
+
     public static String getAccessLevel(String token) throws SQLException {
 
-        String sql = "SELECT u.user_id" +
+        String query = "SELECT u.user_id" +
                 "FROM users u " +
                 "JOIN login_sessions ls ON u.user_id = ls.user_id " +
                 "WHERE ls.token = ? AND ls.expiry > NOW()";
 
+        String userId = Integer.toString(getUserIdFromToken(token));
+
+        if (userId == "-1") {
+            throw new SQLException("Invalid token");
+        }
+
         try (Connection connection = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
                 env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+             PreparedStatement statement = connection.prepareStatement(query)) {
 
-            statement.setString(1, token);
+            statement.setString(1, userId);
+            statement.setString(2, userId);
+            statement.setString(3, userId);
 
             try (ResultSet rs = statement.executeQuery()) {
                 if (rs.next()) {
-                    // Token is valid and we found the user
-                    String id = Integer.toString(rs.getInt("user_id"));
-                    if(isStudent(id)){
-                        return "student";
-                    }
-                    if(isRep(id)){
-                        return "rep";
-                    }
-                    if(isAdmin(id)){
-                        return "admin";
-                    }
+                    String table = rs.getString("table_name");
 
+                    switch (table) {
+                        case "users":
+                            return "user";
+                        case "admins":
+                            return "admin";
+                        case "rep":
+                            return "rep";
+                    }
                 } else {
-                    // Token is invalid, expired, or doesn't exist
-                    return "";
+                    // token somehow vanished
+                    throw new SQLException("Token not found.");
                 }
             }
-        } catch (RuntimeException e) {
-            throw new SQLException();
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
         return "";
     }
