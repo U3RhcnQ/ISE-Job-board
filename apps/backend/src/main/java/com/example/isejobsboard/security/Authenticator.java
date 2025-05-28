@@ -1,8 +1,11 @@
 package com.example.isejobsboard.security;
 
+import org.springframework.http.ResponseEntity;
+
 import java.security.SecureRandom;
 import java.sql.*;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.Map;
 
 public class Authenticator {
@@ -120,6 +123,36 @@ public class Authenticator {
             throw new SQLException(e);
         }
     }
+
+    public static String getAccessLevel(String token) throws SQLException {
+
+        String sql = "SELECT u.access_level " +
+                "FROM users u " +
+                "JOIN login_sessions ls ON u.user_id = ls.user_id " +
+                "WHERE ls.token = ? AND ls.expiry > NOW()";
+
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
+                env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setString(1, token);
+
+            try (ResultSet rs = statement.executeQuery()) {
+                if (rs.next()) {
+                    // Token is valid and we found the user
+                    return rs.getString("access-level");
+
+
+                } else {
+                    // Token is invalid, expired, or doesn't exist
+                    return "";
+                }
+            }
+        } catch (RuntimeException e) {
+            throw new SQLException();
+        }
+    }
+
 
     /**
      * Builds a cryptographically random token which can be used for user authentication.
