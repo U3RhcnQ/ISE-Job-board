@@ -1,9 +1,10 @@
-import React, { useState, useMemo } from 'react';
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users } from 'lucide-react';
+import React, {useMemo, useState} from 'react';
+import {Button} from "@/components/ui/button";
+import {Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle} from "@/components/ui/card";
+import {Badge} from "@/components/ui/badge";
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
+import {Users} from 'lucide-react';
+import {useAuth} from '../context/AuthContext';
 
 // --- Improved Mock Data ---
 // I've added a numeric `salaryValue` and a `postedDate` to make sorting reliable.
@@ -52,6 +53,10 @@ const JobCard = ({ company, title, salary, description, tags, applicants }) => {
 };
 
 const Jobs = () => {
+
+    // Step 2: Call the hook to get user and isLoading state
+    const { user, isLoading } = useAuth();
+
     // State for the active filter ('All', 'R1', 'R2', 'R1+R2')
     const [activeFilter, setActiveFilter] = useState('All');
     // NEW: State for the sort order
@@ -69,7 +74,7 @@ const Jobs = () => {
         });
 
         // Create a copy before sorting to avoid mutating the original data
-        const sorted = [...filtered].sort((a, b) => {
+        return [...filtered].sort((a, b) => {
             switch (sortOrder) {
                 case 'salary-asc':
                     return a.salaryValue - b.salaryValue;
@@ -81,17 +86,26 @@ const Jobs = () => {
                     return 0;
             }
         });
-
-        return sorted;
     }, [activeFilter, sortOrder]); // Dependencies array
 
+    // Step 3: Handle the loading state while user is being fetched
+    if (isLoading) {
+        return <div className="container mx-auto p-8 text-center">Loading user data...</div>;
+    }
+
+    // It's also good practice to handle the case where user might still be null after loading
+    if (!user) {
+        return <div className="container mx-auto p-8 text-center">Could not load user data.</div>;
+    }
+
     return (
-        <div className="w-full max-w-7xl mx-auto space-y-6">
-            <div className="text-center md:text-left">
-                <h1 className="text-3xl font-bold">Welcome, Petr to the Jobs Board</h1>
+        <div className="container mx-auto p-2 md:p-4">
+            <div className="text-center md:text-left pb-4">
+                <h1 className="text-3xl font-bold">Welcome, <span className={"text-green-600"}> {user.first_name} </span> to the Jobs Board</h1>
+                <p className="text-muted-foreground pt-1 pb-1">Here are the latest job opportunities available for you.</p>
             </div>
 
-            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <div className="flex flex-col md:flex-row justify-between items-center gap-4 pb-8">
                 <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-medium">Filter by:</span>
                     <Button variant={activeFilter === 'All' ? 'default' : 'outline'} className={activeFilter === 'All' ? "bg-green-600 hover:bg-green-700" : ""} onClick={() => setActiveFilter('All')}>All</Button>

@@ -9,9 +9,9 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import Jobs from './pages/Jobs';
 import JobDetailPage from './pages/JobDetailPage';
+import { Ranking } from './pages/Ranking';
 
 // Placeholder Page Components
-const Ranking = () => <div className="container mx-auto p-8"><h1 className="text-3xl font-bold">Ranking Page</h1><p>Content for Ranking will go here.</p></div>;
 const ResidencyInfo = () => <div className="container mx-auto p-8"><h1 className="text-3xl font-bold">Residency Information Page</h1><p>Content for Residency Information will go here.</p></div>;
 
 // ProtectedRoute HOC
@@ -47,9 +47,8 @@ function AppLayout() {
         <div className="min-h-screen bg-gray-100 dark:bg-slate-900 text-foreground">
             {isAuthenticated && ( // Only show header if authenticated
                 <header className="sticky top-0 z-50 w-full p-2 md:p-4">
-                    <div className="container mx-auto flex h-16 items-center justify-between rounded-full bg-background/80 px-4 shadow-md backdrop-blur supports-[backdrop-filter]:bg-background/60 md:px-6">
+                    <div className="container mx-auto flex h-16 items-center justify-between rounded-full px-4 shadow-md md:px-6 bg-white">
                         <Link to="/jobs" className="flex items-center gap-2">
-                            <Briefcase className="h-7 w-7 text-primary" />
                             <span className="text-xl font-black text-primary hidden sm:inline">[ISE]</span>
                         </Link>
 
@@ -66,7 +65,6 @@ function AppLayout() {
                         </nav>
 
                         <div className="hidden md:flex items-center gap-3">
-                            {user && <span className="text-sm text-muted-foreground">Hi, {user.first_name}</span>}
                             <Button variant="outline" size="sm" onClick={logout}>
                                 <LogOut className="mr-2 h-4 w-4" /> Logout
                             </Button>
@@ -97,7 +95,7 @@ function AppLayout() {
                 </header>
             )}
 
-            <main className="p-4 md:p-8">
+            <main className="p-4 pt-4 md:p-8 md:pt-4">
                 <Routes>
                     <Route path="/login" element={<Login />} />
                     <Route path="/" element={<ProtectedRoute><Jobs /></ProtectedRoute>} />

@@ -5,6 +5,25 @@ import { useNavigate } from 'react-router-dom';
 const API_BASE_URL = 'http://localhost:8080/api/v1';
 const AuthContext = createContext(undefined);
 
+/**
+ * Custom hook to access the authentication context.
+ * @returns {{
+ * token: string | null,
+ * user: {
+ * userId: number,
+ * first_name: string,
+ * last_name: string,  // Changed from first_name/second_name to match camelCase API key
+ * email: string,
+ * accessLevel: string
+ * } | null,
+ * isLoading: boolean,
+ * error: string | null,
+ * login: (email, password) => Promise<void>,
+ * logout: () => void,
+ * isAuthenticated: boolean
+ * }}
+ */
+
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
@@ -97,6 +116,10 @@ export const AuthProvider = ({ children }) => {
         setToken(null);
         setUser(null);
         setError(null);
+
+        localStorage.removeItem('rankedItems');
+        localStorage.removeItem('availableItems');
+
         navigate('/login');
     };
 
