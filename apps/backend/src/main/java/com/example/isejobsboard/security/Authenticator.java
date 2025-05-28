@@ -126,7 +126,7 @@ public class Authenticator {
 
     public static String getAccessLevel(String token) throws SQLException {
 
-        String sql = "SELECT u.access_level " +
+        String sql = "SELECT u.user_id" +
                 "FROM users u " +
                 "JOIN login_sessions ls ON u.user_id = ls.user_id " +
                 "WHERE ls.token = ? AND ls.expiry > NOW()";
@@ -140,8 +140,16 @@ public class Authenticator {
             try (ResultSet rs = statement.executeQuery()) {
                 if (rs.next()) {
                     // Token is valid and we found the user
-                    return rs.getString("access-level");
-
+                    String id = Integer.toString(rs.getInt("user_id"));
+                    if(isStudent(id)){
+                        return "student";
+                    }
+                    if(isRep(id)){
+                        return "rep";
+                    }
+                    if(isAdmin(id)){
+                        return "admin";
+                    }
 
                 } else {
                     // Token is invalid, expired, or doesn't exist
@@ -151,7 +159,86 @@ public class Authenticator {
         } catch (RuntimeException e) {
             throw new SQLException();
         }
+        return "";
     }
+    public static boolean isStudent(String id)throws SQLException{
+        String sql = "SELECT user_id" +
+                "FROM student" +
+                "WHERE user_id = ?";
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
+                env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setString(1, id);
+
+            try (ResultSet rs = statement.executeQuery()) {
+                if (rs.next()) {
+                    // The user is a student
+                    return true;
+
+
+                } else {
+                    // The user isn't a student
+                    return false;
+                }
+            }
+        } catch (RuntimeException e) {
+            throw new SQLException();
+        }
+
+    }
+    public static boolean isRep(String id)throws SQLException{
+        String sql = "SELECT user_id" +
+                "FROM rep" +
+                "WHERE user_id = ?";
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
+                env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setString(1, id);
+
+            try (ResultSet rs = statement.executeQuery()) {
+                if (rs.next()) {
+                    // The user is a rep
+                    return true;
+
+                } else {
+                    // The user isn't a rep
+                    return false;
+                }
+            }
+        } catch (RuntimeException e) {
+            throw new SQLException();
+        }
+
+    }
+    public static boolean isAdmin(String id)throws SQLException{
+        String sql = "SELECT user_id" +
+                "FROM admin" +
+                "WHERE user_id = ?";
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
+                env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setString(1, id);
+
+            try (ResultSet rs = statement.executeQuery()) {
+                if (rs.next()) {
+                    // The user is a admin
+                    return true;
+
+                } else {
+                    // The user isn't a admin
+                    return false;
+                }
+            }
+        } catch (RuntimeException e) {
+            throw new SQLException();
+        }
+
+    }
+
+
 
 
     /**
