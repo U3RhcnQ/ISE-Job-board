@@ -5,7 +5,6 @@ import com.example.isejobsboard.repository.GreetingMessageRepository;
 import com.example.isejobsboard.security.SHA256;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.config.annotation.web.oauth2.login.OidcBackChannelLogoutDsl;
 import org.springframework.web.bind.annotation.*;
 
 import java.sql.*;
@@ -88,7 +87,7 @@ public class ApiController {
 
     @PostMapping("/add-company")
     public ResponseEntity<Object> addCompany(@RequestBody Company company, @RequestHeader("Authorization") String authHeader) throws SQLException {
-// 1. Validate the Authorization header format ("Bearer <token>")
+        // 1. Validate the Authorization header format ("Bearer <token>")
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             return ResponseEntity.status(400).body(Map.of("error", "Malformed Authorization header."));
         }
@@ -125,83 +124,13 @@ public class ApiController {
             return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred during Signup."));
         }
     }
-    @DeleteMapping()
-    public ResponseEntity<Object> deleteCompany(@RequestBody Company company, @RequestHeader("Authorization") String authHeader)throws SQLException{
-        // 1. Validate the Authorization header format ("Bearer <token>")
+    @PostMapping("/logout")
+    public ResponseEntity<Object> logout(@RequestHeader("Authorization") String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             return ResponseEntity.status(400).body(Map.of("error", "Malformed Authorization header."));
         }
 
-        // 2. Extract the token from the header
-        String token = authHeader.substring(7); // "Bearer " is 7 characters
-
-        // 3. Ensure the token is valid
-        if (!Authenticator.isTokenValid(token)) {
-            return ResponseEntity.status(401).body(Map.of("error", "Invalid Token"));
-        }
-        // 4. Ensure the correct access level
-        if(!Authenticator.getAccessLevel(token).equals("admin")){
-            return ResponseEntity.status(401).body(Map.of("error", "Invalid Access Level"));
-        }
-        // 5. Create Queary to be proscessed
-        String query = "DELETE company WHERE company_id = ?";
-        try (Connection userConnection = DriverManager.getConnection(dbUrl, env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
-             PreparedStatement userStatement = userConnection.prepareStatement(query)) {
-
-            // Safely set the parameters
-            userStatement.setString(1, Long.toString(company.getId()));
-
-
-            userStatement.executeUpdate();
-
-            // SUCCESS: User was created. Return 201 Created.
-            return ResponseEntity.status(201).body(Map.of("message", "Company deleted successfully"));
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred during Signup."));
-        }
-    }
-
-//    @PostMapping("create-job")
-//    public ResponseEntity<Object> createJob(@RequestBody Job job, @RequestHeader("Authorization")String authHeader) throws SQLException{
-//        //check if the token is valid
-//        //check if the user is a company
-//        //get company id for job
-//
-//
-//    }
-
-//    @PostMapping("update-company")
-//    public ResponseEntity<Object> updateCompany(@RequestBody Company company, @RequestHeader("Authorization") String authHeader)throws SQLException{
-//        // 1. Validate the Authorization header format ("Bearer <token>")
-//        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-//            return ResponseEntity.status(400).body(Map.of("error", "Malformed Authorization header."));
-//        }
-//
-//        // 2. Extract the token from the header
-//        String token = authHeader.substring(7); // "Bearer " is 7 characters
-//
-//        // 3. Ensure the token is valid
-//        if (!Authenticator.isTokenValid(token)) {
-//            return ResponseEntity.status(401).body(Map.of("error", "Invalid Token"));
-//        }
-//        // 4. Ensure the correct access level
-//        if(!Authenticator.getAccessLevel(token).equals("admin")){
-//            return ResponseEntity.status(401).body(Map.of("error", "Invalid Access Level"));
-//        }
-//        //use token id to find if its the company or admin
-//        //get user id
-//        //get company id that will be changed
-//        //see if the token id is associatd with the company id or that the user is a admin
-//        //use the passed object and change the company details
-//
-//
-//
-//    }
-    @PostMapping("/logout")
-    public ResponseEntity<Object> logout(@RequestBody UserLogout user) {
-        String token = user.getToken();
+        String token = authHeader.substring(7);
 
         try {
             if (Authenticator.isTokenValid(token)) {

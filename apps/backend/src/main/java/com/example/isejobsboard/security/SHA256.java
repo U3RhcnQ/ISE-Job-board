@@ -11,6 +11,7 @@ public class SHA256 {
             byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
 
             StringBuilder hexString = new StringBuilder();
+
             for (byte b : hash) {
                 String hex = Integer.toHexString(0xff & b);
 
