@@ -84,34 +84,53 @@ public class ApiController {
 
         }
     }
-    @PostMapping("add-company")
-    public void addCompany(@RequestBody Company body){
-        StringBuilder queryBuilder = new StringBuilder();
-        queryBuilder.append("INSERT INTO company (name, website, champion) VALUES(");
-        queryBuilder.append(body.getName() +", ");
-        queryBuilder.append(body.getWebsite() +", ");
-        queryBuilder.append(body.getChampion() +", ");
 
-        String query = queryBuilder.toString();
-
-        try{
-        Connection userConnection = DriverManager.getConnection(
-                "jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
-                env.get("MYSQL_USER_NAME"),
-                env.get("MYSQL_USER_PASSWORD")
-
-        );
-        Statement userStatement = userConnection.createStatement();
-        ResultSet userResultSet = userStatement.executeQuery(query);
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
+    @PostMapping("/add-company")
+    public ResponseEntity<Object> addCompany(@RequestBody Company company, @RequestHeader("Authorization") String authHeader) throws SQLException {
+        // 1. Validate the Authorization header format ("Bearer <token>")
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(400).body(Map.of("error", "Malformed Authorization header."));
         }
 
-    }
+        // 2. Extract the token from the header
+        String token = authHeader.substring(7); // "Bearer " is 7 characters
 
+        if (!Authenticator.isTokenValid(token)) {
+            return ResponseEntity.status(401).body(Map.of("error", "Invalid Token"));
+        }
+        if(!Authenticator.getAccessLevel(token).equals("admin")){
+            return ResponseEntity.status(401).body(Map.of("error", "Invalid Access Level"));
+        }
+
+        // Use a PreparedStatement with placeholders (?) to prevent SQL Injection
+        String query = "INSERT INTO company(name, website, champion) VALUES (?, ?, ?)";
+
+        // Use try-with-resources for automatic resource management
+        try (Connection userConnection = DriverManager.getConnection(dbUrl, env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+             PreparedStatement userStatement = userConnection.prepareStatement(query)) {
+
+            // Safely set the parameters
+            userStatement.setString(1, company.getName());
+            userStatement.setString(2, company.getWebsite());
+            userStatement.setString(3, company.getChampion());
+
+            userStatement.executeUpdate();
+
+            // SUCCESS: User was created. Return 201 Created.
+            return ResponseEntity.status(201).body(Map.of("message", "Company created successfully"));
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred during Signup."));
+        }
+    }
     @PostMapping("/logout")
-    public ResponseEntity<Object> logout(@RequestBody UserLogout user) {
-        String token = user.getToken();
+    public ResponseEntity<Object> logout(@RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(400).body(Map.of("error", "Malformed Authorization header."));
+        }
+
+        String token = authHeader.substring(7);
 
         try {
             if (Authenticator.isTokenValid(token)) {
@@ -198,6 +217,34 @@ public class ApiController {
                     // Token is invalid, expired, or doesn't exist
                     return ResponseEntity.status(401).body(Map.of("error", "Unauthorized: Invalid or expired token."));
                 }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
+        }
+    }
+
+    @GetMapping("/access")
+    public ResponseEntity<Object> getAccessLevel(@RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).body(Map.of("error", "Malformed Authorization header."));
+        }
+
+        String token = authHeader.substring(7);
+
+        try {
+            if (Authenticator.isTokenValid(token)) {
+                Map<String, String> response = new HashMap<>();
+
+                String accessLevel = Authenticator.getAccessLevel(token);
+
+                if (accessLevel.isEmpty()) {
+                    return ResponseEntity.status(500).body(Map.of("error", "An internal server error occured."));
+                } else {
+                    return ResponseEntity.ok(Map.of("access_level", accessLevel));
+                }
+            } else {
+                return ResponseEntity.status(401).body(Map.of("error", "Unauthorized: Invalid or expired token"));
             }
         } catch (SQLException e) {
             e.printStackTrace();

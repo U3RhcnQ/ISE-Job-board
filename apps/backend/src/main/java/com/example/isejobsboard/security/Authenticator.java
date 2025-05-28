@@ -1,8 +1,11 @@
 package com.example.isejobsboard.security;
 
+import org.springframework.http.ResponseEntity;
+
 import java.security.SecureRandom;
 import java.sql.*;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.Map;
 
 public class Authenticator {
@@ -120,6 +123,146 @@ public class Authenticator {
             throw new SQLException(e);
         }
     }
+
+    public static int getUserIdFromToken(String token) throws SQLException {
+        // Assume token is validated when called, we're all reasonable people here
+        try (Connection con = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board", env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+             PreparedStatement statement = con.prepareStatement("SELECT user_id FROM login_sessions WHERE token = ?");) {
+
+            statement.setString(1, token);
+
+            ResultSet rs = statement.executeQuery();
+
+            if (rs.next()) {
+                return rs.getInt("user_id");
+            }
+        }
+
+        return -1;
+    }
+
+    public static String getAccessLevel(String token) throws SQLException {
+
+        String query = "SELECT u.user_id" +
+                "FROM users u " +
+                "JOIN login_sessions ls ON u.user_id = ls.user_id " +
+                "WHERE ls.token = ? AND ls.expiry > NOW()";
+
+        String userId = Integer.toString(getUserIdFromToken(token));
+
+        if (userId == "-1") {
+            throw new SQLException("Invalid token");
+        }
+
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
+                env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+             PreparedStatement statement = connection.prepareStatement(query)) {
+
+            statement.setString(1, userId);
+            statement.setString(2, userId);
+            statement.setString(3, userId);
+
+            try (ResultSet rs = statement.executeQuery()) {
+                if (rs.next()) {
+                    String table = rs.getString("table_name");
+
+                    switch (table) {
+                        case "users":
+                            return "user";
+                        case "admins":
+                            return "admin";
+                        case "rep":
+                            return "rep";
+                    }
+                } else {
+                    // token somehow vanished
+                    throw new SQLException("Token not found.");
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return "";
+    }
+    public static boolean isStudent(String id)throws SQLException{
+        String sql = "SELECT user_id" +
+                "FROM student" +
+                "WHERE user_id = ?";
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
+                env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setString(1, id);
+
+            try (ResultSet rs = statement.executeQuery()) {
+                if (rs.next()) {
+                    // The user is a student
+                    return true;
+
+
+                } else {
+                    // The user isn't a student
+                    return false;
+                }
+            }
+        } catch (RuntimeException e) {
+            throw new SQLException();
+        }
+
+    }
+    public static boolean isRep(String id)throws SQLException{
+        String sql = "SELECT user_id" +
+                "FROM rep" +
+                "WHERE user_id = ?";
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
+                env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setString(1, id);
+
+            try (ResultSet rs = statement.executeQuery()) {
+                if (rs.next()) {
+                    // The user is a rep
+                    return true;
+
+                } else {
+                    // The user isn't a rep
+                    return false;
+                }
+            }
+        } catch (RuntimeException e) {
+            throw new SQLException();
+        }
+
+    }
+    public static boolean isAdmin(String id)throws SQLException{
+        String sql = "SELECT user_id" +
+                "FROM admin" +
+                "WHERE user_id = ?";
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
+                env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setString(1, id);
+
+            try (ResultSet rs = statement.executeQuery()) {
+                if (rs.next()) {
+                    // The user is a admin
+                    return true;
+
+                } else {
+                    // The user isn't a admin
+                    return false;
+                }
+            }
+        } catch (RuntimeException e) {
+            throw new SQLException();
+        }
+
+    }
+
+
+
 
     /**
      * Builds a cryptographically random token which can be used for user authentication.
