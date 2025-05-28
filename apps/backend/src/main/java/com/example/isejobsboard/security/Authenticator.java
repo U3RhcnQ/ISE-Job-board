@@ -19,32 +19,19 @@ public class Authenticator {
     public static String createToken(int userId) throws SQLException {
         String token = _buildToken();
 
-        // Connecting to the database table
-        Connection tokenConnection = DriverManager.getConnection(
-                "jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
-                env.get("MYSQL_USER_NAME"),
-                env.get("MYSQL_USER_PASSWORD")
-        );
-
-        StringBuilder queryBuilder = new StringBuilder();
-
         long currentTime = System.currentTimeMillis();
 
-        // Using StringBuilder because concatenation was throwing a syntax error
-        queryBuilder.append("INSERT INTO login_sessions(user_id, token, expiry) VALUES (");
-        queryBuilder.append(Integer.toString(userId));
-        queryBuilder.append(", '");
-        queryBuilder.append(token);
-        queryBuilder.append("', '");
-        queryBuilder.append(new Timestamp(currentTime + (3 * 60 * 60 * 1000)));
-        queryBuilder.append("');");;
-
-        String query = queryBuilder.toString();
+        String query = "INSERT INTO login_sessions (user_id, token, expiry) VALUES (?, ?, ?)";
 
         // Inserting our token into the database
-        try {
-            Statement tokenStatement = tokenConnection.createStatement();
-            tokenStatement.executeUpdate(query);
+        try (Connection con = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board", env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+             PreparedStatement statement = con.prepareStatement(query)) {
+
+            statement.setInt(1, userId);
+            statement.setString(2, token);
+            statement.setTimestamp(3, new Timestamp(currentTime + (3 * 60 * 60 * 1000)));
+
+            statement.executeUpdate();
 
             return token;
         } catch (SQLException e) {
@@ -65,18 +52,12 @@ public class Authenticator {
                 env.get("MYSQL_USER_PASSWORD")
         );
 
-        StringBuilder queryBuilder = new StringBuilder();
-
-        // Using StringBuilder because concatenation was throwing a syntax error
-        queryBuilder.append("DELETE FROM login_sessions WHERE token = '");
-        queryBuilder.append(token);
-        queryBuilder.append("';");
-
-        String query = queryBuilder.toString();
+        String query = "DELETE FROM login_sessions WHERE token = ?";
 
         // Deleting our token from the database
         try {
             Statement tokenStatement = tokenConnection.createStatement();
+
             tokenStatement.executeUpdate(query);
         } catch (SQLException e) {
             throw new RuntimeException(e);
@@ -90,27 +71,18 @@ public class Authenticator {
      * @throws SQLException
      */
     public static boolean isTokenValid(String token) throws SQLException {
-        Connection tokensConnection = DriverManager.getConnection(
-                "jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
-                env.get("MYSQL_USER_NAME"),
-                env.get("MYSQL_USER_PASSWORD")
-        );
+        String query = "SELECT * FROM login_sessions WHERE token = ?";
 
-        StringBuilder queryBuilder = new StringBuilder();
+        try (Connection con = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board", env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+        PreparedStatement statement = con.prepareStatement(query)) {
 
-        queryBuilder.append("SELECT * FROM login_sessions WHERE token = '");
-        queryBuilder.append(token);
-        queryBuilder.append("';");
+            statement.setString(1, token);
 
-        String query = queryBuilder.toString();
+            ResultSet rs = statement.executeQuery();
 
-        try {
-            Statement tokensStatement = tokensConnection.createStatement();
-            ResultSet tokensResultSet = tokensStatement.executeQuery(query);
-
-            while (tokensResultSet.next()) {
-                if (tokensResultSet.getTimestamp("expiry").after(new Timestamp(System.currentTimeMillis()))) {
-                    if (tokensResultSet.getString("token").equals(token)) {
+            while (rs.next()) {
+                if (rs.getTimestamp("expiry").after(new Timestamp(System.currentTimeMillis()))) {
+                    if (rs.getString("token").equals(token)) {
                         return true;
                     }
                 } else {
@@ -119,8 +91,6 @@ public class Authenticator {
             }
 
             return false;
-        } catch (RuntimeException e) {
-            throw new SQLException(e);
         }
     }
 
@@ -143,10 +113,12 @@ public class Authenticator {
 
     public static String getAccessLevel(String token) throws SQLException {
 
-        String query = "SELECT u.user_id" +
-                "FROM users u " +
-                "JOIN login_sessions ls ON u.user_id = ls.user_id " +
-                "WHERE ls.token = ? AND ls.expiry > NOW()";
+        String query =
+                "SELECT 'admins' AS table_name FROM admins WHERE user_id = ? " +
+                "UNION ALL\n" +
+                "SELECT 'students' AS table_name FROM student WHERE user_id = ? " +
+                "UNION ALL " +
+                "SELECT 'rep' AS table_name FROM rep WHERE user_id = ?;";
 
         String userId = Integer.toString(getUserIdFromToken(token));
 
@@ -176,7 +148,7 @@ public class Authenticator {
                     }
                 } else {
                     // token somehow vanished
-                    throw new SQLException("Token not found.");
+                    throw new SQLException("Token not found in any access level.");
                 }
             }
         } catch (SQLException e) {
@@ -184,85 +156,6 @@ public class Authenticator {
         }
         return "";
     }
-    public static boolean isStudent(String id)throws SQLException{
-        String sql = "SELECT user_id" +
-                "FROM student" +
-                "WHERE user_id = ?";
-        try (Connection connection = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
-                env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
-             PreparedStatement statement = connection.prepareStatement(sql)) {
-
-            statement.setString(1, id);
-
-            try (ResultSet rs = statement.executeQuery()) {
-                if (rs.next()) {
-                    // The user is a student
-                    return true;
-
-
-                } else {
-                    // The user isn't a student
-                    return false;
-                }
-            }
-        } catch (RuntimeException e) {
-            throw new SQLException();
-        }
-
-    }
-    public static boolean isRep(String id)throws SQLException{
-        String sql = "SELECT user_id" +
-                "FROM rep" +
-                "WHERE user_id = ?";
-        try (Connection connection = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
-                env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
-             PreparedStatement statement = connection.prepareStatement(sql)) {
-
-            statement.setString(1, id);
-
-            try (ResultSet rs = statement.executeQuery()) {
-                if (rs.next()) {
-                    // The user is a rep
-                    return true;
-
-                } else {
-                    // The user isn't a rep
-                    return false;
-                }
-            }
-        } catch (RuntimeException e) {
-            throw new SQLException();
-        }
-
-    }
-    public static boolean isAdmin(String id)throws SQLException{
-        String sql = "SELECT user_id" +
-                "FROM admin" +
-                "WHERE user_id = ?";
-        try (Connection connection = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
-                env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
-             PreparedStatement statement = connection.prepareStatement(sql)) {
-
-            statement.setString(1, id);
-
-            try (ResultSet rs = statement.executeQuery()) {
-                if (rs.next()) {
-                    // The user is a admin
-                    return true;
-
-                } else {
-                    // The user isn't a admin
-                    return false;
-                }
-            }
-        } catch (RuntimeException e) {
-            throw new SQLException();
-        }
-
-    }
-
-
-
 
     /**
      * Builds a cryptographically random token which can be used for user authentication.
