@@ -236,7 +236,13 @@ public class ApiController {
             if (Authenticator.isTokenValid(token)) {
                 Map<String, String> response = new HashMap<>();
 
-                response.put("access_level", Authenticator.getAccessLevel(token));
+                String accessLevel = Authenticator.getAccessLevel(token);
+
+                if (accessLevel.isEmpty()) {
+                    return ResponseEntity.status(500).body(Map.of("error", "An internal server error occured."));
+                } else {
+                    response.put("access_level", accessLevel);
+                }
 
                 return ResponseEntity.ok(response);
             } else {
