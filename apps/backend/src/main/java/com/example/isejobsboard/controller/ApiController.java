@@ -224,7 +224,6 @@ public class ApiController {
         }
     }
 
-
     @GetMapping("/access")
     public ResponseEntity<Object> getAccessLevel(@RequestHeader("Authorization") String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
@@ -320,7 +319,42 @@ public class ApiController {
             if (Authenticator.isTokenValid(token)) {
                 // TODO FIX THIS
                 return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
+                int userId = Authenticator.getUserIdFromToken(token);
+                String accessLevel = Authenticator.getAccessLevel(userId);
 
+                String query =
+                        "SELECT s.student_number, s.class_rank, s.user_id, s.year, " +
+                        "EXISTS " +
+                        "(SELECT 1 " +
+                        "FROM student_preference sp " +
+                        "WHERE sp.student_number = s.student_number) " +
+                        "AS ranked " +
+                        "FROM student s " +
+                        "WHERE s.user_id = ?";
+
+            } else {
+                return ResponseEntity.status(401).body(Map.of("error", "Unauthorized: Invalid or expired token."));
+                try (Connection con = DriverManager.getConnection(dbUrl, env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+                     PreparedStatement statement = con.prepareStatement(query)) {
+
+                    statement.setInt(1, userId);
+
+                    try (ResultSet rs = statement.executeQuery()) {
+                        if (rs.next()) {
+                            Map<String, Object> userData = new HashMap<>();
+
+                            userData.put("student_number", rs.getInt("student_number"));
+                            userData.put("class_rank", rs.getInt("class_rank"));
+                            userData.put("user_id", rs.getInt("user_id"));
+                            userData.put("year", rs.getInt("year"));
+                            userData.put("ranked", rs.getBoolean("ranked"));
+
+                            return ResponseEntity.ok(userData);
+                        } else {
+                            return ResponseEntity.status(404).body(Map.of("error", "Student not found."));
+                        }
+                    }
+                }
             } else {
                 return ResponseEntity.status(401).body(Map.of("error", "Unauthorized: Invalid or expired token."));
             }

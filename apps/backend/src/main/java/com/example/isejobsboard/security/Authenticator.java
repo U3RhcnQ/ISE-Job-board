@@ -57,9 +57,11 @@ public class Authenticator {
 
         // Deleting our token from the database
         try {
-            Statement tokenStatement = tokenConnection.createStatement();
+            PreparedStatement tokenStatement = tokenConnection.prepareStatement(query);
 
-            tokenStatement.executeUpdate(query);
+            tokenStatement.setString(1, token);
+
+            tokenStatement.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -113,15 +115,19 @@ public class Authenticator {
     }
 
     public static String getAccessLevel(String token) throws SQLException {
+        return getAccessLevel(getUserIdFromToken(token));
+    }
+
+    public static String getAccessLevel(int id) throws SQLException {
 
         String query =
                 "SELECT 'admins' AS table_name FROM admins WHERE user_id = ? " +
-                "UNION ALL\n" +
-                "SELECT 'students' AS table_name FROM student WHERE user_id = ? " +
-                "UNION ALL " +
-                "SELECT 'rep' AS table_name FROM rep WHERE user_id = ?;";
+                        "UNION ALL\n" +
+                        "SELECT 'students' AS table_name FROM student WHERE user_id = ? " +
+                        "UNION ALL " +
+                        "SELECT 'rep' AS table_name FROM rep WHERE user_id = ?;";
 
-        String userId = Integer.toString(getUserIdFromToken(token));
+        String userId = Integer.toString(id);
 
         System.out.println(userId);
 
