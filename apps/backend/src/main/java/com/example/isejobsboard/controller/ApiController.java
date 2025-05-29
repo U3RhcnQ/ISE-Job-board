@@ -362,4 +362,98 @@ public class ApiController {
         }
 
     }
+
+    @GetMapping("/rep-info")
+    public ResponseEntity<Object> getRepInfo(@RequestHeader("Authorization") String authHeader, @RequestParam("user_id") int userId) {
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).body(Map.of("error", "Malformed Authorization header."));
+        }
+
+        String token = authHeader.substring(7);
+
+        try {
+            if (Authenticator.isTokenValid(token)) {
+                int callerId = Authenticator.getUserIdFromToken(token);
+                String accessLevel = Authenticator.getAccessLevel(userId);
+
+                if (!accessLevel.equals("admin") && callerId != userId) {
+                    return ResponseEntity.status(403).body(Map.of("error", "Unauthorized: Invalid or expired token."));
+                }
+
+                String query = "SELECT * FROM rep WHERE user_id = ?";
+
+
+                try (Connection con = DriverManager.getConnection(dbUrl, env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+                     PreparedStatement statement = con.prepareStatement(query)) {
+
+                    statement.setInt(1, userId);
+
+                    try (ResultSet rs = statement.executeQuery()) {
+                        if (rs.next()) {
+                            Map<String, Object> userData = new HashMap<>();
+
+                            userData.put("rep_id", rs.getInt("rep_id"));
+                            userData.put("user_id", rs.getInt("user_id"));
+                            userData.put("company_id", rs.getInt("Company_id"));
+
+                            return ResponseEntity.ok(userData);
+                        } else {
+                            return ResponseEntity.status(404).body(Map.of("error", "Representative not found."));
+                        }
+                    }
+                }
+            } else {
+                return ResponseEntity.status(401).body(Map.of("error", "Unauthorized: Invalid or expired token."));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
+        }
+
+    }
+
+    @GetMapping("/company-info")
+    public ResponseEntity<Object> getCompanyInfo(@RequestHeader("Authorization") String authHeader, @RequestParam("company_id") int companyId) {
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).body(Map.of("error", "Malformed Authorization header."));
+        }
+
+        String token = authHeader.substring(7);
+
+        try {
+            if (Authenticator.isTokenValid(token)) {
+                String query = "SELECT * FROM company WHERE company_id = ?";
+
+
+                try (Connection con = DriverManager.getConnection(dbUrl, env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+                     PreparedStatement statement = con.prepareStatement(query)) {
+
+                    statement.setInt(1, companyId);
+
+                    try (ResultSet rs = statement.executeQuery()) {
+                        if (rs.next()) {
+                            Map<String, Object> userData = new HashMap<>();
+
+                            userData.put("company_id", rs.getInt("company_id"));
+                            userData.put("name", rs.getString("name"));
+                            userData.put("champion", rs.getString("champion"));
+                            userData.put("address_id", rs.getInt("address_id"));
+
+                            return ResponseEntity.ok(userData);
+                        } else {
+                            return ResponseEntity.status(404).body(Map.of("error", "Company not found."));
+                        }
+                    }
+                }
+            } else {
+                return ResponseEntity.status(401).body(Map.of("error", "Unauthorized: Invalid or expired token."));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
+        }
+
+    }
 }
