@@ -14,4 +14,24 @@ public class SmallJob {
         this.salary = salary;
         this.residency = residency;
     }
+
+    public String getJobTitle() {
+        return jobTitle;
+    }
+
+    public String getCompanyName() {
+        return companyName;
+    }
+
+    public String getSmallDescription() {
+        return smallDescription;
+    }
+
+    public float getSalary() {
+        return salary;
+    }
+
+    public String getResidency() {
+        return residency;
+    }
 }

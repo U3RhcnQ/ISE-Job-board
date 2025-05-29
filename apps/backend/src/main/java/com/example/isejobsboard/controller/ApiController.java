@@ -2,6 +2,7 @@ package com.example.isejobsboard.controller;
 
 import com.example.isejobsboard.model.GreetingMessage;
 import com.example.isejobsboard.model.SmallJob;
+import com.example.isejobsboard.model.Student;
 import com.example.isejobsboard.repository.GreetingMessageRepository;
 import com.example.isejobsboard.security.SHA256;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.sql.*;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -263,23 +265,23 @@ public class ApiController {
             if (Authenticator.isTokenValid(token)) {
                 switch (Authenticator.getAccessLevel(token)){
                     case "admin":
-                        String sql = "SELECT j.job_title," +
-                                "j.salary, j.small_description, j.residency, c.name  " +
-                                "FROM users j " +
+                        String sql = "SELECT j.job_title, " +
+                                "j.salary, j.small_description, j.residency, c.name " +
+                                "FROM job j " +
                                 "INNER JOIN company c " +
                                 "ON j.company_id = c.company_id";
-                        Map<String, SmallJob> userData = new HashMap<>();
+                       List<SmallJob> userData = new ArrayList<>();
                         try (Connection connection = DriverManager.getConnection(dbUrl,
                                 env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
                              PreparedStatement statement = connection.prepareStatement(sql)) {
-
+                            System.out.println("connected!!");
                             try (ResultSet rs = statement.executeQuery()) {
                                 while (rs.next()) {
                                     // Token is valid and we found the user
                                     SmallJob jobInfo = new SmallJob(rs.getString("job_title"),
-                                            rs.getString("company"),rs.getString("small_description"),
+                                            rs.getString("name"),rs.getString("small_description"),
                                             rs.getFloat("salary"),rs.getString("residency"));
-                                    userData.put("job", jobInfo);
+                                    userData.add( jobInfo);
 
                                 }
                             }
@@ -287,14 +289,160 @@ public class ApiController {
                             e.printStackTrace();
                             return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
                         }
-                        if(!userData.isEmpty()){
-                            return ResponseEntity.ok(userData);
-                        } else {
-                            // Token is invalid, expired, or doesn't exist
-                            return ResponseEntity.status(401).body(Map.of("error", "Unauthorized: Invalid or expired token."));
-                        }
-                        //break;
 
+                        return ResponseEntity.ok(userData);
+
+                    case "student":
+                        switch (Student.getYear(token)){
+                            case "1":
+                               sql = "SELECT j.job_title, " +
+                                        "j.salary, j.small_description, j.residency, c.name " +
+                                        "FROM job j " +
+                                        "INNER JOIN company c " +
+                                        "ON j.company_id = c.company_id " +
+                                        "WHERE j.residency = 'r1' OR 'r2' OR 'r1+r2'";
+                                userData = new ArrayList<>();
+                                try (Connection connection = DriverManager.getConnection(dbUrl,
+                                        env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+                                     PreparedStatement statement = connection.prepareStatement(sql)) {
+                                    System.out.println("connected!!");
+                                    try (ResultSet rs = statement.executeQuery()) {
+                                        while (rs.next()) {
+                                            // Token is valid and we found the user
+                                            SmallJob jobInfo = new SmallJob(rs.getString("job_title"),
+                                                    rs.getString("name"),rs.getString("small_description"),
+                                                    rs.getFloat("salary"),rs.getString("residency"));
+                                            userData.add( jobInfo);
+
+                                        }
+
+                                    }
+                                } catch (SQLException e) {
+                                    e.printStackTrace();
+                                    return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
+                                }
+                                return ResponseEntity.ok(userData);
+
+
+                            case "2":
+                                sql = "SELECT j.job_title, " +
+                                        "j.salary, j.small_description, j.residency, c.name " +
+                                        "FROM job j " +
+                                        "INNER JOIN company c " +
+                                        "ON j.company_id = c.company_id " +
+                                        "WHERE j.residency = 'r3'";
+                                userData = new ArrayList<>();
+                                try (Connection connection = DriverManager.getConnection(dbUrl,
+                                        env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+                                     PreparedStatement statement = connection.prepareStatement(sql)) {
+                                    System.out.println("connected!!");
+                                    try (ResultSet rs = statement.executeQuery()) {
+                                        while (rs.next()) {
+                                            // Token is valid and we found the user
+                                            SmallJob jobInfo = new SmallJob(rs.getString("job_title"),
+                                                    rs.getString("name"),rs.getString("small_description"),
+                                                    rs.getFloat("salary"),rs.getString("residency"));
+                                            userData.add( jobInfo);
+
+                                        }
+                                    }
+                                } catch (SQLException e) {
+                                    e.printStackTrace();
+                                    return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
+                                }
+
+                                return ResponseEntity.ok(userData);
+                            case "3":
+                                sql = "SELECT j.job_title, " +
+                                        "j.salary, j.small_description, j.residency, c.name " +
+                                        "FROM job j " +
+                                        "INNER JOIN company c " +
+                                        "ON j.company_id = c.company_id " +
+                                        "WHERE j.residency = 'r4'";
+                                userData = new ArrayList<>();
+                                try (Connection connection = DriverManager.getConnection(dbUrl,
+                                        env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+                                     PreparedStatement statement = connection.prepareStatement(sql)) {
+                                    System.out.println("connected!!");
+                                    try (ResultSet rs = statement.executeQuery()) {
+                                        while (rs.next()) {
+                                            // Token is valid and we found the user
+                                            SmallJob jobInfo = new SmallJob(rs.getString("job_title"),
+                                                    rs.getString("name"),rs.getString("small_description"),
+                                                    rs.getFloat("salary"),rs.getString("residency"));
+                                            userData.add( jobInfo);
+
+                                        }
+                                    }
+                                } catch (SQLException e) {
+                                    e.printStackTrace();
+                                    return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
+                                }
+
+                                return ResponseEntity.ok(userData);
+                            case "4":
+                                sql = "SELECT j.job_title, " +
+                                        "j.salary, j.small_description, j.residency, c.name " +
+                                        "FROM job j " +
+                                        "INNER JOIN company c " +
+                                        "ON j.company_id = c.company_id " +
+                                        "WHERE j.residency = 'r5'";
+                                userData = new ArrayList<>();
+                                try (Connection connection = DriverManager.getConnection(dbUrl,
+                                        env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+                                     PreparedStatement statement = connection.prepareStatement(sql)) {
+                                    System.out.println("connected!!");
+                                    try (ResultSet rs = statement.executeQuery()) {
+                                        while (rs.next()) {
+                                            // Token is valid and we found the user
+                                            SmallJob jobInfo = new SmallJob(rs.getString("job_title"),
+                                                    rs.getString("name"),rs.getString("small_description"),
+                                                    rs.getFloat("salary"),rs.getString("residency"));
+                                            userData.add( jobInfo);
+
+                                        }
+                                    }
+                                } catch (SQLException e) {
+                                    e.printStackTrace();
+                                    return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
+                                }
+
+                                return ResponseEntity.ok(userData);
+                        }
+                        break;
+                    case "rep":
+                        sql = "SELECT j.job_title, " +
+                                "j.salary, j.small_description, j.residency, c.name " +
+                                "FROM job j " +
+                                "INNER JOIN company c " +
+                                "ON j.company_id = c.company_id " +
+                                "INNER JOIN rep rp " +
+                                "ON rp.company_id = c.company_id " +
+                                "INNER JOIN login_sessions ls " +
+                                "ON rp.user_id = ls.user_id " +
+                                "WHERE ls.token = ? " +
+                                "AND ls.expiry > NOW";
+
+                        userData = new ArrayList<>();
+                        try (Connection connection = DriverManager.getConnection(dbUrl,
+                                env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+                             PreparedStatement statement = connection.prepareStatement(sql)) {
+                            statement.setString(1, token);
+                            try (ResultSet rs = statement.executeQuery()) {
+                                while (rs.next()) {
+                                    // Token is valid and we found the user
+                                    SmallJob jobInfo = new SmallJob(rs.getString("job_title"),
+                                            rs.getString("name"),rs.getString("small_description"),
+                                            rs.getFloat("salary"),rs.getString("residency"));
+                                    userData.add( jobInfo);
+
+                                }
+                            }
+                        } catch (SQLException e) {
+                            e.printStackTrace();
+                            return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
+                        }
+                        return ResponseEntity.ok(userData);
                 }
             }
         } catch (SQLException e) {
@@ -343,7 +491,6 @@ public class ApiController {
                             Map<String, Object> userData = new HashMap<>();
 
                             userData.put("student_number", rs.getInt("student_number"));
-                            userData.put("class_rank", rs.getInt("class_rank"));
                             userData.put("user_id", rs.getInt("user_id"));
                             userData.put("year", rs.getInt("year"));
                             userData.put("ranked", rs.getBoolean("ranked"));
@@ -351,6 +498,100 @@ public class ApiController {
                             return ResponseEntity.ok(userData);
                         } else {
                             return ResponseEntity.status(404).body(Map.of("error", "Student not found."));
+                        }
+                    }
+                }
+            } else {
+                return ResponseEntity.status(401).body(Map.of("error", "Unauthorized: Invalid or expired token."));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
+        }
+
+    }
+
+    @GetMapping("/rep-info")
+    public ResponseEntity<Object> getRepInfo(@RequestHeader("Authorization") String authHeader, @RequestParam("user_id") int userId) {
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).body(Map.of("error", "Malformed Authorization header."));
+        }
+
+        String token = authHeader.substring(7);
+
+        try {
+            if (Authenticator.isTokenValid(token)) {
+                int callerId = Authenticator.getUserIdFromToken(token);
+                String accessLevel = Authenticator.getAccessLevel(userId);
+
+                if (!accessLevel.equals("admin") && callerId != userId) {
+                    return ResponseEntity.status(403).body(Map.of("error", "Unauthorized: Invalid or expired token."));
+                }
+
+                String query = "SELECT * FROM rep WHERE user_id = ?";
+
+
+                try (Connection con = DriverManager.getConnection(dbUrl, env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+                     PreparedStatement statement = con.prepareStatement(query)) {
+
+                    statement.setInt(1, userId);
+
+                    try (ResultSet rs = statement.executeQuery()) {
+                        if (rs.next()) {
+                            Map<String, Object> userData = new HashMap<>();
+
+                            userData.put("rep_id", rs.getInt("rep_id"));
+                            userData.put("user_id", rs.getInt("user_id"));
+                            userData.put("company_id", rs.getInt("Company_id"));
+
+                            return ResponseEntity.ok(userData);
+                        } else {
+                            return ResponseEntity.status(404).body(Map.of("error", "Representative not found."));
+                        }
+                    }
+                }
+            } else {
+                return ResponseEntity.status(401).body(Map.of("error", "Unauthorized: Invalid or expired token."));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
+        }
+
+    }
+
+    @GetMapping("/company-info")
+    public ResponseEntity<Object> getCompanyInfo(@RequestHeader("Authorization") String authHeader, @RequestParam("company_id") int companyId) {
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).body(Map.of("error", "Malformed Authorization header."));
+        }
+
+        String token = authHeader.substring(7);
+
+        try {
+            if (Authenticator.isTokenValid(token)) {
+                String query = "SELECT * FROM company WHERE company_id = ?";
+
+
+                try (Connection con = DriverManager.getConnection(dbUrl, env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+                     PreparedStatement statement = con.prepareStatement(query)) {
+
+                    statement.setInt(1, companyId);
+
+                    try (ResultSet rs = statement.executeQuery()) {
+                        if (rs.next()) {
+                            Map<String, Object> userData = new HashMap<>();
+
+                            userData.put("company_id", rs.getInt("company_id"));
+                            userData.put("name", rs.getString("name"));
+                            userData.put("champion", rs.getString("champion"));
+                            userData.put("address_id", rs.getInt("address_id"));
+
+                            return ResponseEntity.ok(userData);
+                        } else {
+                            return ResponseEntity.status(404).body(Map.of("error", "Company not found."));
                         }
                     }
                 }
