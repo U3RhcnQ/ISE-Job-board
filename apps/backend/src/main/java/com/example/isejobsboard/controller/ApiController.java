@@ -343,7 +343,6 @@ public class ApiController {
                             Map<String, Object> userData = new HashMap<>();
 
                             userData.put("student_number", rs.getInt("student_number"));
-                            userData.put("class_rank", rs.getInt("class_rank"));
                             userData.put("user_id", rs.getInt("user_id"));
                             userData.put("year", rs.getInt("year"));
                             userData.put("ranked", rs.getBoolean("ranked"));
