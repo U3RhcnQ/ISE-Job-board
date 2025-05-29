@@ -117,4 +117,57 @@ public class Job {
         }
 
     }
+    public static void updateJob(Job job){
+        String sql = "UPDATE job SET position_count = ?," +
+                "description = ?, job_title = ?," +
+                "salary = ?, small_description, " +
+                "residency = ?, residency_title = ?" +
+                "WHERE job_id = ?;";
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
+                env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setInt(1,job.getPositionCount());
+            statement.setString(2,job.getDescription());
+            statement.setString(3,job.getJobTitle());
+            statement.setString(4,job.getSalary());
+            statement.setString(5,job.getSmallDes());
+            statement.setString(6,job.getResidency());
+            statement.setString(7,job.getResidencyTitle());
+            statement.setLong(8,job.getJobId());
+
+            statement.executeUpdate();
+
+        }catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    public static void approveJob(long jobId){
+        String sql = "UPDATE job" +
+                "SET approval = 'approved'  " +
+                "WHERE job_id = ?";
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
+                env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, jobId);
+             statement.executeUpdate();
+
+        }catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    public static void rejectJob(long jobId){
+        String sql = "UPDATE job" +
+                "SET approval = 'rejected'  " +
+                "WHERE job_id = ?";
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
+                env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, jobId);
+            statement.executeUpdate();
+
+        }catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

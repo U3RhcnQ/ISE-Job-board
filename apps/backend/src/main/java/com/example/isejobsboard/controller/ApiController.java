@@ -1,6 +1,7 @@
 package com.example.isejobsboard.controller;
 
 import com.example.isejobsboard.model.GreetingMessage;
+import com.example.isejobsboard.model.SmallJob;
 import com.example.isejobsboard.repository.GreetingMessageRepository;
 import com.example.isejobsboard.security.SHA256;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -247,6 +248,58 @@ public class ApiController {
             e.printStackTrace();
             return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
         }
+    }
+    @GetMapping("/jobs")
+    public ResponseEntity<Object> getJobs(@RequestHeader("Authorization") String authHeader){
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).body(Map.of("error", "Malformed Authorization header."));
+        }
+
+        String token = authHeader.substring(7);
+
+        try {
+            if (Authenticator.isTokenValid(token)) {
+                switch (Authenticator.getAccessLevel(token)){
+                    case "admin":
+                        String sql = "SELECT j.job_title," +
+                                "j.salary, j.small_description, j.residency, c.name  " +
+                                "FROM users j " +
+                                "INNER JOIN company c " +
+                                "ON j.company_id = c.company_id";
+                        Map<String, SmallJob> userData = new HashMap<>();
+                        try (Connection connection = DriverManager.getConnection(dbUrl,
+                                env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+                             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+                            try (ResultSet rs = statement.executeQuery()) {
+                                while (rs.next()) {
+                                    // Token is valid and we found the user
+                                    SmallJob jobInfo = new SmallJob(rs.getString("job_title"),
+                                            rs.getString("company"),rs.getString("small_description"),
+                                            rs.getFloat("salary"),rs.getString("residency"));
+                                    userData.put("job", jobInfo);
+
+                                }
+                            }
+                        } catch (SQLException e) {
+                            e.printStackTrace();
+                            return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
+                        }
+                        if(!userData.isEmpty()){
+                            return ResponseEntity.ok(userData);
+                        } else {
+                            // Token is invalid, expired, or doesn't exist
+                            return ResponseEntity.status(401).body(Map.of("error", "Unauthorized: Invalid or expired token."));
+                        }
+                        //break;
+
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
+        }
+        return ResponseEntity.status(401).body(Map.of("testing", "not admin"));
     }
 
     /*
