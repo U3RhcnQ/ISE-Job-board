@@ -190,7 +190,7 @@ public class ApiController {
         }
 
         // 3. This single query finds the user associated with a valid, non-expired token
-        String sql = "SELECT u.user_id, u.first_name, u.last_name, u.email, u.access_level " +
+        String sql = "SELECT u.user_id, u.first_name, u.last_name, u.email " +
                 "FROM users u " +
                 "JOIN login_sessions ls ON u.user_id = ls.user_id " +
                 "WHERE ls.token = ? AND ls.expiry > NOW()";
@@ -210,7 +210,6 @@ public class ApiController {
                     userData.put("first_name", rs.getString("first_name"));
                     userData.put("last_name", rs.getString("last_name"));
                     userData.put("email", rs.getString("email"));
-                    userData.put("access_level", rs.getString("access_level"));
 
                     return ResponseEntity.ok(userData);
                 } else {
