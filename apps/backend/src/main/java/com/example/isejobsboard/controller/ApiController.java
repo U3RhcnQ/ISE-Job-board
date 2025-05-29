@@ -224,6 +224,7 @@ public class ApiController {
         }
     }
 
+
     @GetMapping("/access")
     public ResponseEntity<Object> getAccessLevel(@RequestHeader("Authorization") String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
@@ -249,6 +250,8 @@ public class ApiController {
             return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
         }
     }
+
+
     @GetMapping("/jobs")
     public ResponseEntity<Object> getJobs(@RequestHeader("Authorization") String authHeader){
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
@@ -302,10 +305,11 @@ public class ApiController {
         return ResponseEntity.status(401).body(Map.of("testing", "not admin"));
     }
 
-    /*
+
 
     @GetMapping("/student-info")
     public ResponseEntity<Object> getStudentInfo(@RequestHeader("Authorization") String authHeader) {
+
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             return ResponseEntity.status(401).body(Map.of("error", "Malformed Authorization header."));
         }
@@ -314,13 +318,18 @@ public class ApiController {
 
         try {
             if (Authenticator.isTokenValid(token)) {
+                // TODO FIX THIS
+                return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
 
+            } else {
+                return ResponseEntity.status(401).body(Map.of("error", "Unauthorized: Invalid or expired token."));
             }
         } catch (SQLException e) {
             e.printStackTrace();
             return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
         }
+
     }
 
-     */
+
 }
