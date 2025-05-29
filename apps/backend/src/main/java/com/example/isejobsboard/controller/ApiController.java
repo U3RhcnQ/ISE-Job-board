@@ -304,7 +304,7 @@ public class ApiController {
         return ResponseEntity.status(401).body(Map.of("testing", "not admin"));
     }
 
-
+    /*
 
     @GetMapping("/student-info")
     public ResponseEntity<Object> getStudentInfo(@RequestHeader("Authorization") String authHeader) {
