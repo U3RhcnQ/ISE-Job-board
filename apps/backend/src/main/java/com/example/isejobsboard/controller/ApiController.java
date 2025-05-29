@@ -234,8 +234,6 @@ public class ApiController {
 
         try {
             if (Authenticator.isTokenValid(token)) {
-                Map<String, String> response = new HashMap<>();
-
                 String accessLevel = Authenticator.getAccessLevel(token);
 
                 if (accessLevel.isEmpty()) {
@@ -245,6 +243,24 @@ public class ApiController {
                 }
             } else {
                 return ResponseEntity.status(401).body(Map.of("error", "Unauthorized: Invalid or expired token"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
+        }
+    }
+
+    @GetMapping("/student-info")
+    public ResponseEntity<Object> getStudentInfo(@RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).body(Map.of("error", "Malformed Authorization header."));
+        }
+
+        String token = authHeader.substring(7);
+
+        try {
+            if (Authenticator.isTokenValid(token)) {
+
             }
         } catch (SQLException e) {
             e.printStackTrace();
