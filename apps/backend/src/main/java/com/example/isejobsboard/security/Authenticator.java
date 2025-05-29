@@ -1,5 +1,6 @@
 package com.example.isejobsboard.security;
 
+import com.example.isejobsboard.ResultSetPrinter;
 import org.springframework.http.ResponseEntity;
 
 import java.security.SecureRandom;
@@ -122,7 +123,9 @@ public class Authenticator {
 
         String userId = Integer.toString(getUserIdFromToken(token));
 
-        if (userId == "-1") {
+        System.out.println(userId);
+
+        if (userId.equals("-1")) {
             throw new SQLException("Invalid token");
         }
 
@@ -135,12 +138,13 @@ public class Authenticator {
             statement.setString(3, userId);
 
             try (ResultSet rs = statement.executeQuery()) {
+
                 if (rs.next()) {
                     String table = rs.getString("table_name");
 
                     switch (table) {
-                        case "users":
-                            return "user";
+                        case "students":
+                            return "student";
                         case "admins":
                             return "admin";
                         case "rep":

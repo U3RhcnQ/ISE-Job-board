@@ -237,7 +237,7 @@ public class ApiController {
                 String accessLevel = Authenticator.getAccessLevel(token);
 
                 if (accessLevel.isEmpty()) {
-                    return ResponseEntity.status(500).body(Map.of("error", "An internal server error occured."));
+                    return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
                 } else {
                     return ResponseEntity.ok(Map.of("access_level", accessLevel));
                 }
@@ -249,6 +249,8 @@ public class ApiController {
             return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
         }
     }
+
+    /*
 
     @GetMapping("/student-info")
     public ResponseEntity<Object> getStudentInfo(@RequestHeader("Authorization") String authHeader) {
@@ -267,4 +269,6 @@ public class ApiController {
             return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
         }
     }
+
+     */
 }
