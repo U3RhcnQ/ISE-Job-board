@@ -304,10 +304,8 @@ public class ApiController {
         return ResponseEntity.status(401).body(Map.of("testing", "not admin"));
     }
 
-    /*
-
     @GetMapping("/student-info")
-    public ResponseEntity<Object> getStudentInfo(@RequestHeader("Authorization") String authHeader) {
+    public ResponseEntity<Object> getStudentInfo(@RequestHeader("Authorization") String authHeader, @RequestParam("user_id") int userId) {
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             return ResponseEntity.status(401).body(Map.of("error", "Malformed Authorization header."));
@@ -317,10 +315,12 @@ public class ApiController {
 
         try {
             if (Authenticator.isTokenValid(token)) {
-                // TODO FIX THIS
-                return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
-                int userId = Authenticator.getUserIdFromToken(token);
+                int callerId = Authenticator.getUserIdFromToken(token);
                 String accessLevel = Authenticator.getAccessLevel(userId);
+
+                if (!accessLevel.equals("admin") && callerId != userId) {
+                    return ResponseEntity.status(403).body(Map.of("error", "Unauthorized: Invalid or expired token."));
+                }
 
                 String query =
                         "SELECT s.student_number, s.class_rank, s.user_id, s.year, " +
@@ -332,8 +332,7 @@ public class ApiController {
                         "FROM student s " +
                         "WHERE s.user_id = ?";
 
-            } else {
-                return ResponseEntity.status(401).body(Map.of("error", "Unauthorized: Invalid or expired token."));
+
                 try (Connection con = DriverManager.getConnection(dbUrl, env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
                      PreparedStatement statement = con.prepareStatement(query)) {
 
@@ -364,6 +363,4 @@ public class ApiController {
         }
 
     }
-
-
 }
