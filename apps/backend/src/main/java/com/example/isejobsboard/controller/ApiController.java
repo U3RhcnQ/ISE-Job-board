@@ -252,64 +252,79 @@ public class ApiController {
         }
     }
 
-
+    /**
+     *
+     * @param authHeader
+     * @return {@literal ResponseEntity<Object>}
+     * <h3> jobs retriever</h3>
+     * <p> userd for getting all jobs associated with a given access level</p>
+     */
     @GetMapping("/jobs")
     public ResponseEntity<Object> getJobs(@RequestHeader("Authorization") String authHeader){
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {//early return for incorrect auth token
             return ResponseEntity.status(401).body(Map.of("error", "Malformed Authorization header."));
         }
-
+        //gets rid of the Bearer signiture
         String token = authHeader.substring(7);
 
         try {
             if (Authenticator.isTokenValid(token)) {
-                switch (Authenticator.getAccessLevel(token)){
+                switch (Authenticator.getAccessLevel(token)){//check access level
                     case "admin":
-                        String sql = "SELECT j.job_title, " +
+                        //query for getting all jobs
+                        String sql = "SELECT j.job_id, j.job_title, j.approval, " +
                                 "j.salary, j.small_description, j.residency, c.name " +
                                 "FROM job j " +
                                 "INNER JOIN company c " +
-                                "ON j.company_id = c.company_id";
-                       List<SmallJob> userData = new ArrayList<>();
+                                "ON j.company_id = c.company_id " +
+                                "WHERE j.approval = 'approved'";
+
+                        //stores all the job descriptions
+                        List<SmallJob> userData = new ArrayList<>();
+
+                        //tries to connect to db
                         try (Connection connection = DriverManager.getConnection(dbUrl,
                                 env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
                              PreparedStatement statement = connection.prepareStatement(sql)) {
-                            System.out.println("connected!!");
                             try (ResultSet rs = statement.executeQuery()) {
+                                //get all jobs
                                 while (rs.next()) {
-                                    // Token is valid and we found the user
-                                    SmallJob jobInfo = new SmallJob(rs.getString("job_title"),
+                                    //add the job info
+                                    SmallJob jobInfo = new SmallJob((long) rs.getInt("job_id"),rs.getString("job_title"),
                                             rs.getString("name"),rs.getString("small_description"),
                                             rs.getFloat("salary"),rs.getString("residency"));
                                     userData.add( jobInfo);
 
                                 }
                             }
-                        } catch (SQLException e) {
+                        }
+                        //if connection not made
+                        catch (SQLException e) {
                             e.printStackTrace();
                             return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
                         }
-
                         return ResponseEntity.ok(userData);
 
+                    //if access level is student
                     case "student":
+                        //check yaar of student and only show associated residencies
+                        //similar format to admin check comments for reference
                         switch (Student.getYear(token)){
                             case "1":
-                               sql = "SELECT j.job_title, " +
+                               sql = "SELECT j.job_title, j.job_id, " +
                                         "j.salary, j.small_description, j.residency, c.name " +
                                         "FROM job j " +
                                         "INNER JOIN company c " +
                                         "ON j.company_id = c.company_id " +
-                                        "WHERE j.residency = 'r1' OR 'r2' OR 'r1+r2'";
+                                        "WHERE j.residency = 'r1' OR 'r2' OR 'r1+r2' " +
+                                       "AND j.approval ='approved'";
                                 userData = new ArrayList<>();
                                 try (Connection connection = DriverManager.getConnection(dbUrl,
                                         env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
                                      PreparedStatement statement = connection.prepareStatement(sql)) {
-                                    System.out.println("connected!!");
                                     try (ResultSet rs = statement.executeQuery()) {
                                         while (rs.next()) {
-                                            // Token is valid and we found the user
-                                            SmallJob jobInfo = new SmallJob(rs.getString("job_title"),
+                                            SmallJob jobInfo = new SmallJob((long) rs.getInt("job_id"),rs.getString("job_title"),
                                                     rs.getString("name"),rs.getString("small_description"),
                                                     rs.getFloat("salary"),rs.getString("residency"));
                                             userData.add( jobInfo);
@@ -325,12 +340,13 @@ public class ApiController {
 
 
                             case "2":
-                                sql = "SELECT j.job_title, " +
+                                sql = "SELECT j.job_title, j.job_id, " +
                                         "j.salary, j.small_description, j.residency, c.name " +
                                         "FROM job j " +
                                         "INNER JOIN company c " +
                                         "ON j.company_id = c.company_id " +
-                                        "WHERE j.residency = 'r3'";
+                                        "WHERE j.residency = 'r3' " +
+                                        "AND j.approval ='approved'";
                                 userData = new ArrayList<>();
                                 try (Connection connection = DriverManager.getConnection(dbUrl,
                                         env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
@@ -339,7 +355,7 @@ public class ApiController {
                                     try (ResultSet rs = statement.executeQuery()) {
                                         while (rs.next()) {
                                             // Token is valid and we found the user
-                                            SmallJob jobInfo = new SmallJob(rs.getString("job_title"),
+                                            SmallJob jobInfo = new SmallJob((long) rs.getInt("job_id"),rs.getString("job_title"),
                                                     rs.getString("name"),rs.getString("small_description"),
                                                     rs.getFloat("salary"),rs.getString("residency"));
                                             userData.add( jobInfo);
@@ -353,12 +369,13 @@ public class ApiController {
 
                                 return ResponseEntity.ok(userData);
                             case "3":
-                                sql = "SELECT j.job_title, " +
+                                sql = "SELECT j.job_title, j.job_id, " +
                                         "j.salary, j.small_description, j.residency, c.name " +
                                         "FROM job j " +
                                         "INNER JOIN company c " +
                                         "ON j.company_id = c.company_id " +
-                                        "WHERE j.residency = 'r4'";
+                                        "WHERE j.residency = 'r4'" +
+                                        "AND j.approval ='approved'";
                                 userData = new ArrayList<>();
                                 try (Connection connection = DriverManager.getConnection(dbUrl,
                                         env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
@@ -367,7 +384,7 @@ public class ApiController {
                                     try (ResultSet rs = statement.executeQuery()) {
                                         while (rs.next()) {
                                             // Token is valid and we found the user
-                                            SmallJob jobInfo = new SmallJob(rs.getString("job_title"),
+                                            SmallJob jobInfo = new SmallJob((long) rs.getInt("job_id"),rs.getString("job_title"),
                                                     rs.getString("name"),rs.getString("small_description"),
                                                     rs.getFloat("salary"),rs.getString("residency"));
                                             userData.add( jobInfo);
@@ -381,12 +398,13 @@ public class ApiController {
 
                                 return ResponseEntity.ok(userData);
                             case "4":
-                                sql = "SELECT j.job_title, " +
+                                sql = "SELECT j.job_title, j.job_id, " +
                                         "j.salary, j.small_description, j.residency, c.name " +
                                         "FROM job j " +
                                         "INNER JOIN company c " +
                                         "ON j.company_id = c.company_id " +
-                                        "WHERE j.residency = 'r5'";
+                                        "WHERE j.residency = 'r5'" +
+                                        "AND j.approval ='approved'";
                                 userData = new ArrayList<>();
                                 try (Connection connection = DriverManager.getConnection(dbUrl,
                                         env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
@@ -395,7 +413,7 @@ public class ApiController {
                                     try (ResultSet rs = statement.executeQuery()) {
                                         while (rs.next()) {
                                             // Token is valid and we found the user
-                                            SmallJob jobInfo = new SmallJob(rs.getString("job_title"),
+                                            SmallJob jobInfo = new SmallJob((long) rs.getInt("job_id"),rs.getString("job_title"),
                                                     rs.getString("name"),rs.getString("small_description"),
                                                     rs.getFloat("salary"),rs.getString("residency"));
                                             userData.add( jobInfo);
@@ -411,7 +429,8 @@ public class ApiController {
                         }
                         break;
                     case "rep":
-                        sql = "SELECT j.job_title, " +
+                        //prepared statement to pervent sql injections
+                        sql = "SELECT j.job_title, j.job_id, j.approval," +
                                 "j.salary, j.small_description, j.residency, c.name " +
                                 "FROM job j " +
                                 "INNER JOIN company c " +
@@ -429,21 +448,25 @@ public class ApiController {
                              PreparedStatement statement = connection.prepareStatement(sql)) {
                             statement.setString(1, token);
                             try (ResultSet rs = statement.executeQuery()) {
+                                //adds all the jobs associated with the reps company
                                 while (rs.next()) {
-                                    // Token is valid and we found the user
-                                    SmallJob jobInfo = new SmallJob(rs.getString("job_title"),
+                                    SmallJob jobInfo = new SmallJob((long) rs.getInt("job_id"),rs.getString("job_title"),
                                             rs.getString("name"),rs.getString("small_description"),
-                                            rs.getFloat("salary"),rs.getString("residency"));
-                                    userData.add( jobInfo);
+                                            rs.getFloat("salary"),rs.getString("residency"),rs.getString("approval"));
+                                    userData.add(jobInfo);
 
                                 }
                             }
+
                         } catch (SQLException e) {
                             e.printStackTrace();
                             return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
                         }
                         return ResponseEntity.ok(userData);
                 }
+            }
+            else {
+                return ResponseEntity.status(401).body(Map.of("error", "Unauthorized: Invalid or expired token."));
             }
         } catch (SQLException e) {
             e.printStackTrace();
