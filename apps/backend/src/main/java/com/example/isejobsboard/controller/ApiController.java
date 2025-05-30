@@ -268,13 +268,61 @@ public class ApiController {
         String token = authHeader.substring(7);
         try{
             if(Authenticator.isTokenValid(token)){
-                String sql = "SELECT j.job_id, j.job_title, j.salary, " +
+                //query to validate that the user has access to the job posting
+                String sql = "WITH CurrentUser AS (" +
+                "  SELECT user_id " +
+                "  FROM login_sessions " +
+                "  WHERE token = ? AND expiry > NOW()" +
+                ") " +
+                "SELECT j.job_id " +
+                "FROM job j, CurrentUser cu " +
+                "WHERE j.job_id = ? " +
+                "AND (" +
+                "  EXISTS (" +
+                "    SELECT 1 " +
+                "    FROM admins a " +
+                "    WHERE a.user_id = cu.user_id" +
+                "  ) " +
+                "  OR " +
+                "  EXISTS (" +
+                "    SELECT 1 " +
+                "    FROM rep r " +
+                "    WHERE r.user_id = cu.user_id " +
+                "      AND r.company_id = j.company_id" +
+                "  ) " +
+                "  OR " +
+                "  EXISTS (" +
+                "    SELECT 1 " +
+                "    FROM student s " +
+                "    WHERE s.user_id = cu.user_id " +
+                "      AND (" +
+                "        (s.year = 1 AND j.residency IN ('r1', 'r2', 'r1+r2')) OR " +
+                "        (s.year = 2 AND j.residency = 'r3') OR " +
+                "        (s.year = 3 AND j.residency = 'r4') OR " +
+                "        (s.year = 4 AND j.residency = 'r5')" +
+                 "      )" +
+                "  )" +
+                ");";
+                try (Connection con = DriverManager.getConnection(dbUrl, env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+                     PreparedStatement statement = con.prepareStatement(sql)) {
+                    statement.setString(1,token);
+                    statement.setLong(2, id);
+
+                    try (ResultSet rs = statement.executeQuery()) {
+                         if(!rs.next()) {
+                            return ResponseEntity.status(404).body(Map.of("error", "Unauthorized: you don't have access to this job"));
+                        }
+                    }
+                }
+
+
+                sql = "SELECT j.job_id, j.job_title, j.salary, " +
                         "j.description, j.position_count, c.name, " +
                         "j.residency, j.approval, j.residency_title, " +
-                        "j.salary" +
+                        "j.salary, c.website  " +
                         "FROM job j " +
-                        "INNER JOIN company c" +
-                        "ON j.company_id = c.company_id" +
+                        "INNER JOIN company c " +
+                        "ON j.company_id = c.company_id " +
                         "WHERE j.job_id = ?";
 
                 try (Connection con = DriverManager.getConnection(dbUrl, env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
@@ -288,10 +336,12 @@ public class ApiController {
 
                             userData.put("job_title", rs.getString("job_title"));
                             userData.put("residency_title", rs.getString("residency_title"));
-                            userData.put("description", rs.getInt("position_count"));
+                            userData.put("description", rs.getString("description"));
+                            userData.put("position_count", rs.getInt("position_count"));
                             userData.put("company_name", rs.getString("name"));
                             userData.put("approval", rs.getString("approval"));
                             userData.put("salary", rs.getFloat("salary"));
+                            userData.put("website", rs.getString("website"));
 
                             return ResponseEntity.ok(userData);
                         } else {
@@ -325,7 +375,7 @@ public class ApiController {
                         //query for getting all jobs
                         String sql = "SELECT j.job_id, j.job_title, j.approval, " +
                                 "j.salary, j.small_description, j.residency, c.name, " +
-                                "j.post_date" +
+                                "j.post_date, j.position_count " +
                                 "FROM job j " +
                                 "INNER JOIN company c " +
                                 "ON j.company_id = c.company_id";
@@ -343,7 +393,8 @@ public class ApiController {
                                     //add the job info
                                     SmallJob jobInfo = new SmallJob((long) rs.getInt("job_id"),rs.getString("job_title"),
                                             rs.getString("name"),rs.getString("small_description"),
-                                            rs.getFloat("salary"),rs.getString("residency"),rs.getTimestamp("post_date"));
+                                            rs.getFloat("salary"),rs.getString("residency"),rs.getTimestamp("post_date"),
+                                            rs.getInt("position_count"));
                                     userData.add( jobInfo);
 
                                 }
@@ -363,7 +414,7 @@ public class ApiController {
                         switch (Student.getYear(token)){
                             case "1":
                                sql = "SELECT j.job_title, j.job_id, " +
-                                        "j.salary, j.small_description, j.residency, c.name, j.post_dates " +
+                                        "j.salary, j.small_description, j.residency, c.name, j.post_date, j.position_count " +
                                         "FROM job j " +
                                         "INNER JOIN company c " +
                                         "ON j.company_id = c.company_id " +
@@ -377,7 +428,8 @@ public class ApiController {
                                         while (rs.next()) {
                                             SmallJob jobInfo = new SmallJob((long) rs.getInt("job_id"),rs.getString("job_title"),
                                                     rs.getString("name"),rs.getString("small_description"),
-                                                    rs.getFloat("salary"),rs.getString("residency"),rs.getTimestamp("post_date"));
+                                                    rs.getFloat("salary"),rs.getString("residency"),
+                                                    rs.getTimestamp("post_date"),rs.getInt("position_count"));
                                             userData.add( jobInfo);
 
                                         }
@@ -392,7 +444,7 @@ public class ApiController {
 
                             case "2":
                                 sql = "SELECT j.job_title, j.job_id, " +
-                                        "j.salary, j.small_description, j.residency, c.name, j.post_date " +
+                                        "j.salary, j.small_description, j.residency, c.name, j.post_date, j.position_count " +
                                         "FROM job j " +
                                         "INNER JOIN company c " +
                                         "ON j.company_id = c.company_id " +
@@ -408,7 +460,8 @@ public class ApiController {
                                             // Token is valid and we found the user
                                             SmallJob jobInfo = new SmallJob((long) rs.getInt("job_id"),rs.getString("job_title"),
                                                     rs.getString("name"),rs.getString("small_description"),
-                                                    rs.getFloat("salary"),rs.getString("residency"), rs.getTimestamp("post_date"));
+                                                    rs.getFloat("salary"),rs.getString("residency"),
+                                                    rs.getTimestamp("post_date"), rs.getInt("position_count"));
                                             userData.add( jobInfo);
 
                                         }
@@ -421,7 +474,7 @@ public class ApiController {
                                 return ResponseEntity.ok(userData);
                             case "3":
                                 sql = "SELECT j.job_title, j.job_id, " +
-                                        "j.salary, j.small_description, j.residency, c.name, j.post_date " +
+                                        "j.salary, j.small_description, j.residency, c.name, j.post_date, j.position_count " +
                                         "FROM job j " +
                                         "INNER JOIN company c " +
                                         "ON j.company_id = c.company_id " +
@@ -437,7 +490,8 @@ public class ApiController {
                                             // Token is valid and we found the user
                                             SmallJob jobInfo = new SmallJob((long) rs.getInt("job_id"),rs.getString("job_title"),
                                                     rs.getString("name"),rs.getString("small_description"),
-                                                    rs.getFloat("salary"),rs.getString("residency"), rs.getTimestamp("post_date"));
+                                                    rs.getFloat("salary"),rs.getString("residency"),
+                                                    rs.getTimestamp("post_date"), rs.getInt("position_count"));
                                             userData.add( jobInfo);
 
                                         }
@@ -450,7 +504,7 @@ public class ApiController {
                                 return ResponseEntity.ok(userData);
                             case "4":
                                 sql = "SELECT j.job_title, j.job_id, " +
-                                        "j.salary, j.small_description, j.residency, c.name, j.post_date " +
+                                        "j.salary, j.small_description, j.residency, c.name, j.post_date, j.position_count " +
                                         "FROM job j " +
                                         "INNER JOIN company c " +
                                         "ON j.company_id = c.company_id " +
@@ -466,7 +520,8 @@ public class ApiController {
                                             // Token is valid and we found the user
                                             SmallJob jobInfo = new SmallJob((long) rs.getInt("job_id"),rs.getString("job_title"),
                                                     rs.getString("name"),rs.getString("small_description"),
-                                                    rs.getFloat("salary"),rs.getString("residency"),rs.getTimestamp("post_date"));
+                                                    rs.getFloat("salary"),rs.getString("residency"),
+                                                    rs.getTimestamp("post_date"), rs.getInt("position_count"));
                                             userData.add( jobInfo);
 
                                         }
@@ -482,7 +537,7 @@ public class ApiController {
                     case "rep":
                         //prepared statement to prevent sql injections
                         sql = "SELECT j.job_title, j.job_id, j.approval," +
-                                "j.salary, j.small_description, j.residency, c.name, j.post_date " +
+                                "j.salary, j.small_description, j.residency, c.name, j.post_date ,j.position_count " +
                                 "FROM job j " +
                                 "INNER JOIN company c " +
                                 "ON j.company_id = c.company_id " +
@@ -503,7 +558,8 @@ public class ApiController {
                                 while (rs.next()) {
                                     SmallJob jobInfo = new SmallJob((long) rs.getInt("job_id"),rs.getString("job_title"),
                                             rs.getString("name"),rs.getString("small_description"),
-                                            rs.getFloat("salary"),rs.getString("residency"),rs.getString("approval"),rs.getTimestamp("post_date"));
+                                            rs.getFloat("salary"),rs.getString("residency"),
+                                            rs.getString("approval"),rs.getTimestamp("post_date"),rs.getInt("position_count"));
                                     userData.add(jobInfo);
 
                                 }

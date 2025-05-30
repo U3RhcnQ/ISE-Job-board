@@ -11,9 +11,10 @@ public class SmallJob {
     private String residency;
     private String approval;
     private Timestamp postDate;
+    public int positionCount;
 
     public SmallJob(Long jobId, String jobTitle, String companyName, String smallDescription,
-                    float salary, String residency, String approval, Timestamp postDate) {
+                    float salary, String residency, String approval, Timestamp postDate, int positionCount) {
         this.jobId = jobId;
         this.jobTitle = jobTitle;
         this.companyName = companyName;
@@ -22,10 +23,11 @@ public class SmallJob {
         this.residency = residency;
         this.approval = approval;
         this.postDate = postDate;
+        this.positionCount = positionCount;
     }
 
     public SmallJob(Long jobId, String jobTitle, String companyName, String smallDescription,
-                    float salary, String residency, Timestamp postDate ) {
+                    float salary, String residency, Timestamp postDate, int positionCount  ) {
         this.jobId = jobId;
         this.jobTitle = jobTitle;
         this.companyName = companyName;
@@ -33,6 +35,7 @@ public class SmallJob {
         this.salary = salary;
         this.residency = residency;
         this.postDate = postDate;
+        this.positionCount = positionCount;
 
     }
     public Long getJobId(){
