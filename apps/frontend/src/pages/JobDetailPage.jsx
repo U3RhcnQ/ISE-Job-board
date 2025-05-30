@@ -1,7 +1,7 @@
 // src/pages/JobDetailPage.jsx
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth.js';
 import { jobsData } from '../jobsData'; // Assuming jobsData.js is in src/
 
 import { Button } from "@/components/ui/button";

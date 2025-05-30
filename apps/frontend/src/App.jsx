@@ -3,20 +3,22 @@ import React, { useState } from 'react';
 import { Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Menu, X, UserCircle, LogOut, Briefcase, BarChart2, InfoIcon as InfoPageIcon } from 'lucide-react'; // Renamed InfoIcon
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { useAuth } from './hooks/useAuth.js'
+import { AuthProvider} from './context/AuthContext';
 
 // Page Components
 import Login from './pages/Login';
 import Jobs from './pages/Jobs';
 import JobDetailPage from './pages/JobDetailPage';
-import { Ranking } from './pages/Ranking';
+import Ranking from './pages/Ranking';
+import Company from './pages/Company';
 
 // Placeholder Page Components
 const ResidencyInfo = () => <div className="container mx-auto p-8"><h1 className="text-3xl font-bold">Residency Information Page</h1><p>Content for Residency Information will go here.</p></div>;
 
 // ProtectedRoute HOC
-const ProtectedRoute = ({ children }) => {
-    const { isAuthenticated, isLoading } = useAuth();
+const ProtectedRoute = ({ children, allowedRoles }) => {
+    const { user, isAuthenticated, isLoading } = useAuth();
     const location = useLocation();
 
     if (isLoading) {
@@ -26,6 +28,12 @@ const ProtectedRoute = ({ children }) => {
     if (!isAuthenticated) {
         return <Navigate to="/login" state={{ from: location }} replace />;
     }
+
+    if (allowedRoles && !allowedRoles.includes(user?.access_level)) {
+        // return <Navigate to="/unauthorised" replace />;
+        return <Navigate to="/" state={{ message: "You do not have access to this page" }} replace />;
+    }
+
     return children;
 };
 
@@ -53,15 +61,39 @@ function AppLayout() {
                         </Link>
 
                         <nav className="hidden md:flex items-center gap-1">
-                            <Button asChild variant="ghost" className={commonButtonClasses}>
-                                <Link to="/jobs">Jobs Board</Link>
-                            </Button>
-                            <Button asChild variant="ghost" className={commonButtonClasses}>
-                                <Link to="/ranking">Ranking</Link>
-                            </Button>
-                            <Button asChild variant="ghost" className={commonButtonClasses}>
-                                <Link to="/info">Residency Info</Link>
-                            </Button>
+                            {user?.access_level === 'student' && (
+                                <>
+                                    <Button asChild variant="ghost" className={commonButtonClasses}>
+                                        <Link to="/jobs">Jobs Board</Link>
+                                    </Button>
+                                    <Button asChild variant="ghost" className={commonButtonClasses}>
+                                        <Link to="/ranking">Ranking</Link>
+                                    </Button>
+                                    <Button asChild variant="ghost" className={commonButtonClasses}>
+                                        <Link to="/info">Residency Info</Link>
+                                    </Button>
+                                </>
+                            )}
+                            {user?.access_level === 'rep' && (
+                                <>
+                                    <Button asChild variant="ghost" className={commonButtonClasses}>
+                                        <Link to="/jobs">Jobs Board</Link>
+                                    </Button>
+                                    <Button asChild variant="ghost" className={commonButtonClasses}>
+                                        <Link to="/company">Your company</Link>
+                                    </Button>
+                                </>
+                            )}
+                            {user?.access_level === 'admin' && (
+                                <>
+                                    <Button asChild variant="ghost" className={commonButtonClasses}>
+                                        <Link to="/jobs">Jobs Board</Link>
+                                    </Button>
+                                    <Button asChild variant="ghost" className={commonButtonClasses}>
+                                        <Link to="/info">Residency Info</Link>
+                                    </Button>
+                                </>
+                            )}
                         </nav>
 
                         <div className="hidden md:flex items-center gap-3">
@@ -97,12 +129,31 @@ function AppLayout() {
 
             <main className="p-4 pt-4 md:p-8 md:pt-4">
                 <Routes>
+
                     <Route path="/login" element={<Login />} />
-                    <Route path="/" element={<ProtectedRoute><Jobs /></ProtectedRoute>} />
-                    <Route path="/jobs" element={<ProtectedRoute><Jobs /></ProtectedRoute>} />
-                    <Route path="/job/:jobId" element={<ProtectedRoute><JobDetailPage /></ProtectedRoute>} />
-                    <Route path="/ranking" element={<ProtectedRoute><Ranking /></ProtectedRoute>} />
-                    <Route path="/info" element={<ProtectedRoute><ResidencyInfo /></ProtectedRoute>} />
+
+                    <Route path="/jobs" element={<ProtectedRoute allowedRoles={['student', 'rep', 'admin']} ><Jobs /></ProtectedRoute>} />
+                    <Route path="/ranking" element={<ProtectedRoute allowedRoles={['student']} ><Ranking /></ProtectedRoute>} />
+                    <Route path="/info" element={<ProtectedRoute allowedRoles={['student', 'admin']} ><ResidencyInfo /></ProtectedRoute>} />
+
+                    <Route path="/job/:jobId" element={<ProtectedRoute allowedRoles={['rep', 'admin']}  ><JobDetailPage /></ProtectedRoute>} />
+                    <Route path="/company" element={<ProtectedRoute allowedRoles={['rep', 'admin']}  ><Company /></ProtectedRoute>} />
+                    <Route path="/company/:companyId" element={<ProtectedRoute allowedRoles={['rep', 'admin']}  ><Company /></ProtectedRoute>} />
+
+                    // Custom home depending on access level
+
+                    <Route path="/" element={<ProtectedRoute>
+                        {user?.access_level === 'student' &&(
+                            <Jobs />
+                        )}
+                        {user?.access_level === 'rep' &&(
+                            <Company />
+                        )}
+                        {user?.access_level === 'admin' &&(
+                            <Jobs />
+                        )}
+                    </ProtectedRoute>} />
+
                 </Routes>
             </main>
         </div>

@@ -4,7 +4,7 @@ import {Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle} f
 import {Badge} from "@/components/ui/badge";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
 import {Users} from 'lucide-react';
-import {useAuth} from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth.js'
 
 // --- Improved Mock Data ---
 // I've added a numeric `salaryValue` and a `postedDate` to make sorting reliable.

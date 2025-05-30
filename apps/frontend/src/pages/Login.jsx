@@ -11,17 +11,18 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Link, useNavigate, useLocation, Navigate } from "react-router-dom"; // Added Navigate and useLocation
-import { useAuth } from '../context/AuthContext'; // Adjust path if needed
+import { useAuth } from '../hooks/useAuth.js';
 import { AlertCircle } from "lucide-react"; // For error display
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; // Make sure you've added this: npm run ui alert
 
 const Login = () => {
+
     // State for form inputs
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
     // Get auth state and functions from AuthContext
-    const { login, isLoading, error, isAuthenticated, user } = useAuth();
+    const { login, isLoading, error, logoutSuccess, setLogoutSuccess, isAuthenticated, user } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -42,6 +43,20 @@ const Login = () => {
         }
     }, [isAuthenticated, user, navigate, location.state]);
 
+    // This useEffect hook will trigger when 'logoutSuccess' or 'setLogoutSuccess' changes.
+    useEffect(() => {
+        if (logoutSuccess) {
+            //set a timer.
+            const timerId = setTimeout(() => {
+                // After 3 seconds, clear the success message.
+                setLogoutSuccess(null);
+            }, 3000);
+
+            return () => clearTimeout(timerId);
+        }
+    }, [logoutSuccess, setLogoutSuccess]); // Dependencies for the effect
+
+
     return (
         // This outer div centers the card vertically and horizontally on the page.
         // min-h-[80vh] gives it a minimum height to push the card down into the viewport.
@@ -61,6 +76,13 @@ const Login = () => {
                                 <AlertDescription className="text-red-600 dark:text-red-400">
                                     {error}
                                 </AlertDescription>
+                            </Alert>
+                        )}
+
+                        {logoutSuccess && (
+                            <Alert variant="default" className="bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-700/50">
+                                <AlertCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                                <AlertTitle className="text-green-700 dark:text-green-300">Logged out successfully</AlertTitle>
                             </Alert>
                         )}
 
@@ -103,7 +125,7 @@ const Login = () => {
                         </Button>
                     </form>
                 </CardContent>
-                <CardFooter className="flex justify-center pt-4">
+                <CardFooter className="flex justify-center">
                     <Button asChild variant="link" className="text-sm text-muted-foreground">
                         <Link to="/forgot-password">Forgot Password?</Link>
                     </Button>

@@ -17,6 +17,7 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import JobDetailPage from "@/pages/JobDetailPage.jsx";
 
 // Use these keys to store our data in localStorage
 const RANKED_ITEMS_STORAGE_KEY = 'rankedItems';
@@ -381,3 +382,5 @@ export const Ranking = () => {
         </div>
     );
 };
+
+export default Ranking;
