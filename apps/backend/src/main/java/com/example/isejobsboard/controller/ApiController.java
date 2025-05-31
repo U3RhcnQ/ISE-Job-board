@@ -1,10 +1,12 @@
 package com.example.isejobsboard.controller;
 
+import com.example.isejobsboard.Utils.CompanyUtils;
 import com.example.isejobsboard.model.GreetingMessage;
 import com.example.isejobsboard.model.SmallJob;
 import com.example.isejobsboard.model.Student;
 import com.example.isejobsboard.repository.GreetingMessageRepository;
 import com.example.isejobsboard.security.SHA256;
+import com.example.isejobsboard.Utils.CompanyUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -626,5 +628,49 @@ public class ApiController {
             return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
         }
 
+    }
+
+    @PostMapping("create-job")
+    public ResponseEntity<Object> createJob(@RequestHeader("Authorization") String authHeader, @RequestBody JobPost job) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).body(Map.of("error", "Malformed Authorization header."));
+        }
+
+        String token = authHeader.substring(7);
+
+        String query = "INSERT INTO job " +
+                "(company_id, description, job_title, salary, small_description, " +
+                "residency, residency_title, address_id, position_count)" +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+        try {
+            var company = CompanyUtils.getCompanyInfoFromCompanyId(Authenticator.getUserIdFromToken(token));
+
+            if (Authenticator.isTokenValid(token)) {
+                try (Connection con = DriverManager.getConnection(dbUrl, env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+                     PreparedStatement statement = con.prepareStatement(query)) {
+                    statement.setInt(1, company.id);
+                    statement.setString(2, job.description);
+                    statement.setString(3, job.title);
+                    statement.setInt(4, job.salary);
+                    statement.setString(5, job.short_description);
+                    statement.setString(6, job.residency);
+                    statement.setString(7, job.residency_title);
+                    statement.setInt(8, 0);
+                    statement.setInt(9, job.position_count);
+
+                    statement.executeUpdate();
+
+                    return ResponseEntity.status(201).body(Map.of("message", "Job created successfully."));
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
+                }
+            } else {
+                return ResponseEntity.status(401).body(Map.of("error", "Unauthorized: Invalid or expired token."));
+            }
+        } catch (SQLException e) {
+            return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
+        }
     }
 }

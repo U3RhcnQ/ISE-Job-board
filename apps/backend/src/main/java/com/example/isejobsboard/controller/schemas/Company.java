@@ -13,6 +13,10 @@ public class Company {
         this.champion = champion;
     }
 
+    public Company() {
+
+    }
+
     public Long getId() {
         return id;
     }
