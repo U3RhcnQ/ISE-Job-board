@@ -644,7 +644,7 @@ public class ApiController {
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try {
-            var company = CompanyUtils.getCompanyInfoFromCompanyId(Authenticator.getUserIdFromToken(token));
+            var company = CompanyUtils.getCompanyInfoFromUserId(Authenticator.getUserIdFromToken(token));
 
             if (Authenticator.isTokenValid(token)) {
                 try (Connection con = DriverManager.getConnection(dbUrl, env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
@@ -656,7 +656,7 @@ public class ApiController {
                     statement.setString(5, job.short_description);
                     statement.setString(6, job.residency);
                     statement.setString(7, job.residency_title);
-                    statement.setInt(8, 0);
+                    statement.setInt(8, company.addressId);
                     statement.setInt(9, job.position_count);
 
                     statement.executeUpdate();
