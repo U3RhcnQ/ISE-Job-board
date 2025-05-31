@@ -5,6 +5,7 @@ public class Company {
     public String name;
     public String champion;
     public String address;
+    public int addressId;
 
     public Company() { /* bong */ }
 }

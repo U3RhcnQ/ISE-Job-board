@@ -12,11 +12,11 @@ public class CompanyUtils {
 
         String query =
                 "SELECT c.* " +
-                "FROM company c " +
-                "INNER JOIN rep r ON c.company_id = r.Company_id " +
+                "FROM jobs_board.company c " +
+                "INNER JOIN jobs_board.rep r ON c.company_id = r.Company_id " +
                 "WHERE r.user_id = ?;";
 
-        try (Connection con = DriverManager.getConnection(DatabaseUtils.url, DatabaseUtils.env.get(""), DatabaseUtils.env.get(""));
+        try (Connection con = DriverManager.getConnection(DatabaseUtils.url, DatabaseUtils.env.get("MYSQL_USER_NAME"), DatabaseUtils.env.get("MYSQL_USER_PASSWORD"));
              PreparedStatement statement = con.prepareStatement(query)) {
 
             statement.setInt(1, userId);
@@ -25,9 +25,9 @@ public class CompanyUtils {
 
             if (rs.next()) {
                 company.id = rs.getInt("company_id");
-                company.name = rs.getString("company_name");
+                company.name = rs.getString("name");
                 company.champion = rs.getString("champion");
-                company.address = rs.getString("address");
+                company.addressId = rs.getInt("address_id");
             } else {
                 throw new SQLException("Company not found");
             }
