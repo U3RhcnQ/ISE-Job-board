@@ -750,7 +750,7 @@ public class ApiController {
 
     }
 
-    @PostMapping("set-preferences")
+    @PostMapping("/set-preferences")
     public ResponseEntity<Object> setPreferences(@RequestHeader("Authorization") String authHeader, @RequestBody ArrayList<StudentPreference> studentPreferences){
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
@@ -777,7 +777,7 @@ public class ApiController {
         }
     }
 
-    @PostMapping("create-job")
+    @PostMapping("/create-job")
     public ResponseEntity<Object> createJob(@RequestHeader("Authorization") String authHeader, @RequestBody JobPost job) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             return ResponseEntity.status(401).body(Map.of("error", "Malformed Authorization header."));
@@ -821,7 +821,7 @@ public class ApiController {
         }
     }
 
-    @PostMapping("update-job")
+    @PostMapping("/update-job")
     public ResponseEntity<Object> updateJob(@RequestHeader("Authorization") String authHeader, @RequestBody JobPost job) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             return ResponseEntity.status(401).body(Map.of("error", "Malformed Authorization header."));
