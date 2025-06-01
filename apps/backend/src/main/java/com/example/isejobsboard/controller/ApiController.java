@@ -688,7 +688,7 @@ public class ApiController {
 
                             userData.put("rep_id", rs.getInt("rep_id"));
                             userData.put("user_id", rs.getInt("user_id"));
-                            userData.put("company_id", rs.getInt("Company_id"));
+                            userData.put("company_id", rs.getInt("company_id"));
 
                             return ResponseEntity.ok(userData);
                         } else {
@@ -800,7 +800,7 @@ public class ApiController {
                     statement.setString(2, job.description);
                     statement.setString(3, job.title);
                     statement.setInt(4, job.salary);
-                    statement.setString(5, job.short_description);
+                    statement.setString(5, job.small_description);
                     statement.setString(6, job.residency);
                     statement.setString(7, job.residency_title);
                     statement.setInt(8, company.addressId);
@@ -863,7 +863,7 @@ public class ApiController {
                     statement.setString(2, job.description);
                     statement.setString(3, job.title);
                     statement.setInt(4, job.salary);
-                    statement.setString(5, job.short_description);
+                    statement.setString(5, job.small_description);
                     statement.setString(6, job.residency);
                     statement.setString(7, job.residency_title);
                     statement.setString(8, JobUtils.getJobStatus(job.approved));
