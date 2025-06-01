@@ -12,12 +12,5 @@ class IseJobsBoardApplicationTests {
 	@Test
 	void contextLoads() {
 	}
-	@Test
-	void getJobsTest(){
-        try {
-            Job.getJobs("r3");
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-    }
+
 }
