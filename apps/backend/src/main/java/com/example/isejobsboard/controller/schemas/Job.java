@@ -1,9 +1,6 @@
 package com.example.isejobsboard.controller.schemas;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.Map;
 
 
@@ -168,6 +165,31 @@ public class Job {
 
         }catch (SQLException e) {
             throw new RuntimeException(e);
+        }
+    }
+    public  static String getResidency(int jobId) throws SQLException{
+        String sql = "SELECT residency FROM job WHERE job_id = ?";
+        //auto close db connection
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
+                env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setInt(1, jobId);
+            //if query fails
+            try(ResultSet rs = statement.executeQuery();){
+                if(rs.next()){
+                String residency = rs.getString("residency");
+                return residency;}
+                //job doesn't exists
+                else {
+                    throw new SQLException();
+                }
+
+            }
+        }
+        //if connection fails
+        catch (SQLException e) {
+            e.printStackTrace();
+            throw new SQLException();
         }
     }
 }

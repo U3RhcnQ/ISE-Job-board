@@ -260,7 +260,7 @@ public class ApiController {
      * <p> userd for getting all jobs associated with a given access level</p>
      */
     @GetMapping("/job/{id}")
-        public ResponseEntity<Object> getJobInfo(@RequestHeader("Authorization") String authHeader,@PathVariable Long id){
+        public ResponseEntity<Object> getJobInfo(@RequestHeader("Authorization") String authHeader, @RequestParam("job_id") long id){
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {//early return for incorrect auth token
             return ResponseEntity.status(401).body(Map.of("error", "Malformed Authorization header."));
         }
@@ -319,7 +319,7 @@ public class ApiController {
                 sql = "SELECT j.job_id, j.job_title, j.salary, " +
                         "j.description, j.position_count, c.name, " +
                         "j.residency, j.approval, j.residency_title, " +
-                        "j.salary, c.website  " +
+                        "j.salary, c.website, j.small_description " +
                         "FROM job j " +
                         "INNER JOIN company c " +
                         "ON j.company_id = c.company_id " +
@@ -342,6 +342,8 @@ public class ApiController {
                             userData.put("approval", rs.getString("approval"));
                             userData.put("salary", rs.getFloat("salary"));
                             userData.put("website", rs.getString("website"));
+                            userData.put("residency", rs.getString("residency"));
+                            userData.put("small_description",rs.getString("small_description"));
 
                             return ResponseEntity.ok(userData);
                         } else {
@@ -734,4 +736,31 @@ public class ApiController {
         }
 
     }
+    @PostMapping("set-preferences")
+    public ResponseEntity<Object> setPreferences(@RequestHeader("Authorization") String authHeader, @RequestBody ArrayList<StudentPreference> studentPreferences){
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).body(Map.of("error", "Malformed Authorization header."));
+        }
+
+        String token = authHeader.substring(7);
+
+        try {
+            if (Authenticator.isTokenValid(token)) {
+                try{
+                StudentPreference.setStudentPreference(studentPreferences, token);
+                return ResponseEntity.status(201).body(Map.of("message", "job preferences sent successfully"));
+
+                } catch (SQLException e) {
+                    return ResponseEntity.status(404).body(Map.of("error", "job from other year detected or you are not a student "));
+                }
+            }
+            else return ResponseEntity.status(401).body(Map.of("error" ,"Unauthorized: Invalid or expired token."));
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
+        }
+    }
+
 }
