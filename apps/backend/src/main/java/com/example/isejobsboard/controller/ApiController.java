@@ -19,6 +19,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
+
 import com.example.isejobsboard.controller.schemas.*;
 import com.example.isejobsboard.security.Authenticator;
 
@@ -161,6 +163,12 @@ public class ApiController {
 
         // Use a PreparedStatement with placeholders (?) to prevent SQL Injection
         String query = "INSERT INTO users (email, password) VALUES (?, ?)";
+
+        String regexPattern = "^(.+)@(\\S+)$";
+
+        if (!Pattern.compile(regexPattern).matcher(user.email).matches()) {
+            return ResponseEntity.status(400).body(Map.of("error", "Invalid email."));
+        }
 
         // Use try-with-resources for automatic resource management
         try (Connection userConnection = DriverManager.getConnection(dbUrl, env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
