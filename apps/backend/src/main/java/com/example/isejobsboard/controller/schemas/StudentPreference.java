@@ -1,7 +1,5 @@
 package com.example.isejobsboard.controller.schemas;
 
-import com.example.isejobsboard.model.Student;
-
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Map;

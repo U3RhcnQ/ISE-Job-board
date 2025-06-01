@@ -1,6 +1,7 @@
 package com.example.isejobsboard.controller.schemas;
 
 import java.sql.*;
+import java.util.HashMap;
 import java.util.Map;
 
 
@@ -14,14 +15,14 @@ public class Job {
     private final Long jobId;
     private  final Long companyId;
     private final int positionCount;
-    private final String description;
-    private final String smallDes;
-    private final String residency;
-    private final String jobTitle;
-    private final Long addressId;
-    private final String residencyTitle;
-    private final Approval approval;
-    private final String salary;
+    private String description;
+    private String smallDes;
+    private String residency;
+    private String jobTitle;
+    private Long addressId;
+    private String residencyTitle;
+    private Approval approval;
+    private String salary;
     private static final Map<String, String> env = System.getenv();
 
     public Job(Long jobId, Long companyId,
@@ -43,6 +44,11 @@ public class Job {
         this.salary = salary;
     }
 
+    public Job(Long jobId,Long companyId,int positionCount ){
+        this.jobId = jobId;
+        this.companyId = companyId;
+        this.positionCount = positionCount;
+    }
     public Long getJobId() {
         return jobId;
     }
@@ -192,4 +198,40 @@ public class Job {
             throw new SQLException();
         }
     }
+
+    /**
+     *
+     * @param residency
+     * @return all the associated jobs of a year
+     */
+    public static HashMap<Long,Job> getJobs(String residency) throws SQLException{
+
+        //using prepared statements to prevent sql injections
+        String sql = "SELECT job_id, company_id, position_count " +
+                "FROM job " +
+                "WHERE residency = ? AND approval = 'approved' ";
+        HashMap<Long,Job> jobsMap = new HashMap<>();
+
+        //automatic resource allocation
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
+                env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setString(1, residency);
+
+
+            try(ResultSet rs = statement.executeQuery()){//
+                while (rs.next()){
+                    jobsMap.put(rs.getLong("job_id"),new Job(rs.getLong("job_id"),
+                            rs.getLong("company_id"),rs.getInt("position_count")));
+                }
+            }
+            return jobsMap;//
+            //if a query fails or connection fails
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw new SQLException();
+        }
+    }
+
 }

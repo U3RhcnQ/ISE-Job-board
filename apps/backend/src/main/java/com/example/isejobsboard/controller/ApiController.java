@@ -5,7 +5,7 @@ import com.example.isejobsboard.Utils.DatabaseUtils;
 import com.example.isejobsboard.Utils.JobUtils;
 import com.example.isejobsboard.model.GreetingMessage;
 import com.example.isejobsboard.model.SmallJob;
-import com.example.isejobsboard.model.Student;
+import com.example.isejobsboard.controller.schemas.Student;
 import com.example.isejobsboard.repository.GreetingMessageRepository;
 import com.example.isejobsboard.security.SHA256;
 import com.example.isejobsboard.Utils.CompanyUtils;
@@ -881,4 +881,14 @@ public class ApiController {
             return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
         }
     }
+//    @GetMapping("/test")
+//    public ResponseEntity<Object>test(){
+//        try{
+//
+//            return ResponseEntity.ok(Job.getJobs("r3"));
+//        }catch (SQLException e){
+//            e.printStackTrace();
+//            return ResponseEntity.status(500).body(Map.of("error", "it didnt pass the test"));
+//        }
+//    }
 }

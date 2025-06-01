@@ -1,4 +1,4 @@
-package com.example.isejobsboard.model;
+package com.example.isejobsboard.controller.schemas;
 
 import java.sql.*;
 import java.util.Map;
