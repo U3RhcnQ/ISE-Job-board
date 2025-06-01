@@ -8,5 +8,6 @@ public class JobPost {
     public int salary;
     public String residency;
     public String residency_title;
-    public int address_id;
+    public int approved;
+    public int job_id;
 }

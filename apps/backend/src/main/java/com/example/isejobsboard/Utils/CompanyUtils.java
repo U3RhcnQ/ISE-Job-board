@@ -6,6 +6,8 @@ import java.sql.*;
 
 import com.example.isejobsboard.Utils.DatabaseUtils;
 
+import javax.xml.crypto.Data;
+
 public class CompanyUtils {
     public static Company getCompanyInfoFromUserId(int userId) {
         Company company = new Company();
@@ -42,5 +44,26 @@ public class CompanyUtils {
         Company company = new Company();
 
         return company;
+    }
+
+    public static boolean hasJob(int companyId, int jobId) {
+        String query = "SELECT 1 FROM jobs_board.job WHERE company_id = ? AND job_id = ?;";
+
+        try (Connection con = DriverManager.getConnection(DatabaseUtils.url, DatabaseUtils.env.get("MYSQL_USER_NAME"), DatabaseUtils.env.get("MYSQL_USER_PASSWORD"));
+        PreparedStatement statement = con.prepareStatement(query)) {
+            statement.setInt(1, companyId);
+            statement.setInt(2, jobId);
+
+            ResultSet rs = statement.executeQuery();
+
+            if (rs.next()) {
+                return true;
+            } else {
+                return false;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 }

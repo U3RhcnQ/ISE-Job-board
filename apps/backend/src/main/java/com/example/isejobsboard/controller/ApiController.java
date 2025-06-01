@@ -1,6 +1,8 @@
 package com.example.isejobsboard.controller;
 
 import com.example.isejobsboard.Utils.CompanyUtils;
+import com.example.isejobsboard.Utils.DatabaseUtils;
+import com.example.isejobsboard.Utils.JobUtils;
 import com.example.isejobsboard.model.GreetingMessage;
 import com.example.isejobsboard.model.SmallJob;
 import com.example.isejobsboard.model.Student;
@@ -670,6 +672,67 @@ public class ApiController {
                 return ResponseEntity.status(401).body(Map.of("error", "Unauthorized: Invalid or expired token."));
             }
         } catch (SQLException e) {
+            return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
+        }
+    }
+
+    @PostMapping("update-job")
+    public ResponseEntity<Object> updateJob(@RequestHeader("Authorization") String authHeader, @RequestBody JobPost job) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).body(Map.of("error", "Malformed Authorization header."));
+        }
+
+        String token = authHeader.substring(7);
+
+        String query = "UPDATE jobs_board.job " +
+                "SET " +
+                "position_count = COALESCE(?, position_count), " +
+                "description = COALESCE(?, description), " +
+                "job_title = COALESCE(?, job_title), " +
+                "salary = COALESCE(?, salary), " +
+                "small_description = COALESCE(?, small_description), " +
+                "residency = COALESCE(?, residency), " +
+                "residency_title = COALESCE(?, residency_title), " +
+                "approval = COALESCE(?, approval) " +
+                "WHERE job_id = ?";
+
+        try {
+            if (Authenticator.isTokenValid(token)) {
+                int userId = Authenticator.getUserIdFromToken(token);
+                String accessLevel = Authenticator.getAccessLevel(token);
+
+                if (accessLevel.equals("student")) {
+                    return ResponseEntity.status(401).body(Map.of("error", "Access denied."));
+                } else if (accessLevel.equals("rep")) {
+                    var company = CompanyUtils.getCompanyInfoFromUserId(userId);
+
+                    if (!CompanyUtils.hasJob(company.id, job.job_id)) {
+                        return ResponseEntity.status(401).body(Map.of("error", "Job not found."));
+                    }
+                }
+
+                try (Connection con = DriverManager.getConnection(DatabaseUtils.url, env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+                     PreparedStatement statement = con.prepareStatement(query)) {
+
+                    statement.setInt(1, job.position_count);
+                    statement.setString(2, job.description);
+                    statement.setString(3, job.title);
+                    statement.setInt(4, job.salary);
+                    statement.setString(5, job.short_description);
+                    statement.setString(6, job.residency);
+                    statement.setString(7, job.residency_title);
+                    statement.setString(8, JobUtils.getJobStatus(job.approved));
+                    statement.setInt(9, job.job_id);
+
+                    statement.executeUpdate();
+
+                    return ResponseEntity.status(200).body(Map.of("message", "Job updated successfully."));
+                }
+            } else {
+                return ResponseEntity.status(401).body(Map.of("error", "Invalid or expired token."));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
             return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
         }
     }
