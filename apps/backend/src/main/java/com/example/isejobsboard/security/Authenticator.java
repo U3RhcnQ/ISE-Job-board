@@ -122,7 +122,7 @@ public class Authenticator {
 
         String query =
                 "SELECT 'admins' AS table_name FROM admins WHERE user_id = ? " +
-                        "UNION ALL\n" +
+                        "UNION ALL " +
                         "SELECT 'students' AS table_name FROM student WHERE user_id = ? " +
                         "UNION ALL " +
                         "SELECT 'rep' AS table_name FROM rep WHERE user_id = ?;";
