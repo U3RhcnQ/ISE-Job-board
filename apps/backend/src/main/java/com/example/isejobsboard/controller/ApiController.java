@@ -881,6 +881,51 @@ public class ApiController {
             return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
         }
     }
+
+    @PostMapping("/remove-job")
+    public ResponseEntity<Object> removeJob(@RequestHeader("Authorization") String authHeader, @RequestParam int job_id) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).body(Map.of("error", "Malformed Authorization header."));
+        }
+
+        String token = authHeader.substring(7);
+
+        String query = "DELETE FROM jobs_board.job WHERE job_id = ?";
+
+        try {
+            if (Authenticator.isTokenValid(token)) {
+                int userId = Authenticator.getUserIdFromToken(token);
+                String accessLevel = Authenticator.getAccessLevel(token);
+
+                if (accessLevel.equals("student")) {
+                    return ResponseEntity.status(401).body(Map.of("error", "Access denied."));
+                } else if (accessLevel.equals("rep")) {
+                    var company = CompanyUtils.getCompanyInfoFromUserId(userId);
+
+                    if (!CompanyUtils.hasJob(company.id, job_id)) {
+                        return ResponseEntity.status(401).body(Map.of("error", "Job not found."));
+                    }
+                }
+
+                try (Connection con = DriverManager.getConnection(dbUrl, env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+                     PreparedStatement statement = con.prepareStatement(query)) {
+                    statement.setInt(1, job_id);
+
+                    statement.executeUpdate();
+
+                    return ResponseEntity.status(200).body(Map.of("message", "Job deleted successfully."));
+                }
+
+
+            } else {
+                return ResponseEntity.status(401).body(Map.of("error", "Invalid or expired token."));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
+        }
+    }
+
 //    @GetMapping("/test")
 //    public ResponseEntity<Object>test(){
 //        try{
@@ -891,4 +936,5 @@ public class ApiController {
 //            return ResponseEntity.status(500).body(Map.of("error", "it didnt pass the test"));
 //        }
 //    }
+
 }
