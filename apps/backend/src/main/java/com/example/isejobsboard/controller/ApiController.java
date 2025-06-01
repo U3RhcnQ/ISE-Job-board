@@ -259,7 +259,7 @@ public class ApiController {
      * <h3> jobs retriever</h3>
      * <p> userd for getting all jobs associated with a given access level</p>
      */
-    @GetMapping("/job/{id}")
+    @GetMapping("/job/")
         public ResponseEntity<Object> getJobInfo(@RequestHeader("Authorization") String authHeader, @RequestParam("job_id") long id){
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {//early return for incorrect auth token
             return ResponseEntity.status(401).body(Map.of("error", "Malformed Authorization header."));
