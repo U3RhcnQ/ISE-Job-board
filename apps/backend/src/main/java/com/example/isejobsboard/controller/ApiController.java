@@ -164,7 +164,8 @@ public class ApiController {
         // Use a PreparedStatement with placeholders (?) to prevent SQL Injection
         String query = "INSERT INTO users (email, password) VALUES (?, ?)";
 
-        String regexPattern = "^(.+)@(\\S+)$";
+        String regexPattern = "^(?=.{1,64}@)[A-Za-z0-9_-]+(\\.[A-Za-z0-9_-]+)*@"
+                + "[^-][A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*(\\.[A-Za-z]{2,})$";
 
         if (!Pattern.compile(regexPattern).matcher(user.email).matches()) {
             return ResponseEntity.status(400).body(Map.of("error", "Invalid email."));
