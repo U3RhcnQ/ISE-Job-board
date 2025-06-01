@@ -1,16 +1,26 @@
-import React, {useEffect, useMemo, useState} from 'react';
-import {Button} from "@/components/ui/button";
-import {Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle} from "@/components/ui/card";
-import {Badge} from "@/components/ui/badge";
-import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
-import {Users} from 'lucide-react';
-import { NumericFormat } from 'react-number-format';
-import { useAuth } from '../hooks/useAuth.js'
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import {Button} from "../components/ui/button";
+import {Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle} from "../components/ui/card";
+import {Badge} from "../components/ui/badge";
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "../components/ui/select";
+import {Users} from "lucide-react";
+import { NumericFormat } from "react-number-format";
+import { useAuth } from "../hooks/useAuth.js"
 
-const API_BASE_URL = 'http://localhost:8080/api/v1';
+// Shadcn/ui Dialog components
+import {
+    Dialog,
+    DialogTrigger,
+} from "../components/ui/dialog";
+import JobDetailsModal from "../components/JobDetailsModal";
+import JobActionCard from "../components/JobActionCard";
+
+const API_BASE_URL = "http://localhost:8080/api/v1";
 
 
-const JobCard = ({ company, title, salary, description, tags, applicants, user }) => {
+
+const JobCard = ({ id, company, title, salary, description, tags, positionCount, user, onViewDetailsRequest }) => {
+
     return (
         <Card className="flex flex-col hover:shadow-lg transition-shadow duration-300">
             <CardHeader>
@@ -32,20 +42,20 @@ const JobCard = ({ company, title, salary, description, tags, applicants, user }
             <CardFooter className="flex justify-between items-center pt-4">
                 <div className="flex items-center text-sm text-muted-foreground">
                     <Users className="mr-2 h-4 w-4" />
-                    {applicants} Positions
+                    {positionCount} Positions
                 </div>
                 <div className="flex gap-2">
                     {user.access_level === "admin" && (
                         <>
-                        <Button variant="outline">Approve</Button>
-                        <Button className={"bg-green-600 hover:bg-green-700"}>Edit</Button>
+                            <Button variant="outline">Approve</Button>
+                            <Button className={"bg-green-600 hover:bg-green-700"} onClick={() => onViewDetailsRequest(id)}>Edit</Button>
                         </>
                     )}
                     {user.access_level === "rep" && (
-                        <Button className={"bg-green-600 hover:bg-green-700"}>Edit</Button>
+                        <Button className={"bg-green-600 hover:bg-green-700"} onClick={() => onViewDetailsRequest(id)}>Edit</Button>
                     )}
                     {user.access_level === "student" && (
-                        <Button className={"bg-green-600 hover:bg-green-700"} >Read More</Button>
+                        <Button className={"bg-green-600 hover:bg-green-700"} onClick={() => onViewDetailsRequest(id)}>Edit</Button>
                     )}
                 </div>
             </CardFooter>
@@ -68,59 +78,59 @@ const Jobs = () => {
     // NEW: State for the sort order
     const [sortOrder, setSortOrder] = useState('date-newest');
 
-    useEffect(() => {
-        const fetchJobs = async () => {
+    // State for the centralized JobDetailsModal
+    const [isJobModalOpen, setIsJobModalOpen] = useState(false);
+    // `modalTargetJobId` is null for "create" mode, or a job ID string for "edit" mode
+    const [modalTargetJobId, setModalTargetJobId] = useState(null);
 
-            setJobsIsLoading(true);
-            setJobsError(null);
-
-            try {
-                const response = await fetch(`${API_BASE_URL}/jobs`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`, // Send token if endpoint is protected
-                    }
-                });
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                const apiData = await response.json();
-
-                // --- Data Transformation ---
-                const transformedData = apiData.map(apiJob => {
-                    // As "date will be added later", we'll use a placeholder.
-                    // For consistent sorting, a fixed past date or current date can be used.
-                    // If jobs without a real date should appear last when sorting by newest:
-                    const placeholderDate = '1970-01-01T00:00:00Z';
-                    // Or if they should appear as "new" until actual dates are available:
-                    // const placeholderDate = new Date().toISOString();
-
-                    return {
-                        id: apiJob.jobId,
-                        company: apiJob.companyName,
-                        title: apiJob.jobTitle,
-                        salary: apiJob.salary, // Formatted string for display
-                        salaryValue: apiJob.salary, // Numeric value for sorting
-                        postedDate: apiJob.date || placeholderDate, // Use API date if available, else placeholder
-                        description: apiJob.smallDescription,
-                        // API gives "r1", component expects tags like ["R1"] for filtering
-                        tags: apiJob.residency ? [apiJob.residency.toUpperCase()] : [],
-                        // API doesn't provide applicants, so defaulting to 0 or a mock value
-                        applicants: apiJob.applicants || 0,
-                        approvalStatus: apiJob.approval, // Carry over the approval status
-                    };
-                });
-                // --- End of Data Transformation ---
-                setJobsData(transformedData);
-            } catch (error) {
-                console.error("Failed to fetch jobs:", error);
-                setJobsError(error.message);
-            } finally {
+    const fetchJobs = useCallback(async () => {
+        // Guard: Only fetch if auth is complete and token is available
+        if (authIsLoading || !token) {
+            // If auth is done but no token, it means user is not logged in or token is invalid.
+            if (!authIsLoading && !token) {
+                setJobsData([]); // Clear any existing jobs
                 setJobsIsLoading(false);
+                // Optionally set a specific message if needed, though the main render handles !user
             }
-        };
+            return; // Don't proceed if auth is still loading or no token
+        }
 
+        console.log("Fetching jobs with token..."); // Debug log
+        setJobsIsLoading(true);
+        setJobsError(null);
+        try {
+            const response = await fetch(`${API_BASE_URL}/jobs`, {
+                headers: { 'Authorization': `Bearer ${token}` },
+            });
+            if (!response.ok) {
+                const errorBody = await response.text();
+                throw new Error(`HTTP error! status: ${response.status}, body: ${errorBody}`);
+            }
+            const apiData = await response.json();
+            const transformedData = apiData.map(apiJob => ({
+                id: apiJob.jobId,
+                title: apiJob.jobTitle || 'N/A',
+                company: apiJob.companyName || 'N/A',
+                description: apiJob.smallDescription || 'N/A',
+                salary: apiJob.salary,
+                salaryValue: apiJob.salary,
+                postedDate: apiJob.postDate || new Date().toISOString(),
+                tags: apiJob.residency ? [apiJob.residency.toUpperCase()] : [],
+                approvalStatus: apiJob.approval || false,
+                positionCount: apiJob.positionCount || 0,
+            }));
+            setJobsData(transformedData);
+        } catch (error) {
+            console.error("Failed to fetch jobs:", error);
+            setJobsError(error.message);
+        } finally {
+            setJobsIsLoading(false);
+        }
+    }, [token, authIsLoading]); // Dependencies for useCallback
+
+    useEffect(() => {
         fetchJobs();
-    }, []); // Empty dependency array means this effect runs once on mount
+    }, [fetchJobs]);
 
 
     // NEW: useMemo hook to efficiently filter and sort the data.
@@ -141,7 +151,7 @@ const Jobs = () => {
 
         const filtered = jobsData.filter(job => {
             if (activeFilter === 'All') return true;
-            if (activeFilter === 'R1+R2') return job.tags.includes('R1') && job.tags.includes('R2');
+            if (activeFilter === 'R1+R2') return job.tags.includes('R1+R2') && job.tags.length === 1;
             if (activeFilter === 'R1') return job.tags.includes('R1') && job.tags.length === 1;
             if (activeFilter === 'R2') return job.tags.includes('R2') && job.tags.length === 1;
             if (activeFilter === 'R3') return job.tags.includes('R3') && job.tags.length === 1;
@@ -164,6 +174,29 @@ const Jobs = () => {
             }
         });
     }, [activeFilter, sortOrder, jobsData]); // Dependencies array
+
+    // Handler to open the modal in "CREATE" mode (called by JobActionCard)
+    const handleOpenCreateJobModal = () => {
+        console.log("Request to create new job by:", user?.email);
+        setModalTargetJobId(null); // No specific job ID means "create" mode
+        setIsJobModalOpen(true);    // Open the modal
+    };
+
+
+    // Handler to open the modal in "EDIT" (or view leading to edit) mode (called by JobCard)
+    const handleOpenEditViewJobModal = (jobIdToEdit) => {
+        console.log("Request to view/edit job ID:", jobIdToEdit);
+        setModalTargetJobId(jobIdToEdit); // Set the ID of the job
+        setIsJobModalOpen(true);         // Open the modal
+    };
+
+    // Callback for when job creation or update is successful from JobDetailsModal
+    const handleJobOperationSuccess = (savedOrCreatedJobData) => {
+        console.log('Job operation successful in parent:', savedOrCreatedJobData);
+        setIsJobModalOpen(false); // Close the modal
+        fetchJobs();              // Refresh the list of jobs
+    };
+
 
     // Step 3: Handle the loading state while user is being fetched
     if (authIsLoading || jobsIsLoading) {
@@ -244,11 +277,40 @@ const Jobs = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {/* NEW: We now map over the `displayedJobs` array, which is the final, filtered, and sorted list. */}
+
                 {displayedJobs.map(job => (
-                    <JobCard key={job.id} user={user} {...job} />
+                    <JobCard key={job.id} user={user} {...job} onViewDetailsRequest={handleOpenEditViewJobModal} />
                 ))}
+
+                {(user.access_level === "admin" || user.access_level === "rep") && (
+                    <JobActionCard onCreateClick={handleOpenCreateJobModal} />
+                )}
+
             </div>
+            {/* SINGLE DIALOG INSTANCE for both Create and Edit Job */}
+            <Dialog open={isJobModalOpen} onOpenChange={(open) => {
+                setIsJobModalOpen(open);
+                if (!open) {
+                    setModalTargetJobId(null); // Reset target ID when dialog is closed by any means
+                }
+            }}>
+                {/* JobDetailsModal is the content of the Dialog.
+                    It's rendered only when isJobModalOpen is true.
+                    The `key` prop ensures the modal re-initializes its internal state
+                    when switching between creating a new job and editing different jobs.
+                */}
+                {isJobModalOpen && (
+                    <JobDetailsModal
+                        key={modalTargetJobId || 'create-new-job-instance'} // Ensures re-mount & fresh state
+                        jobId={modalTargetJobId} // null for "create", job's ID string for "edit"
+                        // user prop is not strictly needed if JobDetailsModal uses useAuth() internally,
+                        // but ensure JobDetailsModal has access to the user for permissions.
+                        // Your JobDetailsModal already uses useAuth, so this prop isn't strictly necessary
+                        // unless you want to explicitly pass the `user` object from this scope.
+                        onOperationSuccess={handleJobOperationSuccess} // Callback for success
+                    />
+                )}
+            </Dialog>
         </div>
     );
 };
