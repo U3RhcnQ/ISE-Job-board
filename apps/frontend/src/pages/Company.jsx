@@ -4,6 +4,7 @@ import React, {useEffect, useMemo, useState} from "react";
 
 
 const Company = () => {
+
     const { companyId: companyIdFromParams } = useParams(); // Get ID from URL
     const { user, token, isLoading: authLoading, error: authError } = useAuth(); // Access auth context
 
@@ -45,8 +46,10 @@ const Company = () => {
         }
 
         const fetchCompanyDetails = async () => {
+
             setIsLoading(true);
             setError(null);
+
             try {
                 // Example: API endpoint to get company details by its ID
                 // You'll need to create this endpoint on your backend.
