@@ -1,6 +1,7 @@
 package com.example.isejobsboard.controller.schemas;
 
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -23,6 +24,7 @@ public class Job {
     private String residencyTitle;
     private Approval approval;
     private String salary;
+    public ArrayList<Student> interviews;
     private static final Map<String, String> env = System.getenv();
 
     public Job(Long jobId, Long companyId,
@@ -48,6 +50,7 @@ public class Job {
         this.jobId = jobId;
         this.companyId = companyId;
         this.positionCount = positionCount;
+        this.interviews = new ArrayList<>();
     }
     public Long getJobId() {
         return jobId;
@@ -233,5 +236,6 @@ public class Job {
             throw new SQLException();
         }
     }
+
 
 }

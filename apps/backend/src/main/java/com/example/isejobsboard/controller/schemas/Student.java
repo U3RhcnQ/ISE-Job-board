@@ -11,6 +11,7 @@ public class Student {
     public int rank;
     public ArrayList<Job> jobPreferences;
     public HashMap<Long, Job> availableJobs;
+    public ArrayList<Job> interviews;
 
     private static final Map<String, String> env = System.getenv();
 
@@ -18,6 +19,7 @@ public class Student {
         this.studentNumber = studentNumber;
         this.rank = rank;
         this.availableJobs = availableJobs;
+        this.interviews = new ArrayList<Job>();
     }
 
     public static String getYear(String token) throws SQLException{
@@ -102,6 +104,16 @@ public class Student {
             e.printStackTrace();
             throw new SQLException();
         }
+    }
 
+
+    public boolean hasCompany(Job possiableJob){
+        for(int i = 0; i < this.interviews.size(); i++){
+            //check all the current allocated interview companys for the new possible job
+            if(this.interviews.get(i).getCompanyId().equals(possiableJob.getCompanyId())){
+                return true;
+            }
+        }
+        return false;
     }
 }
