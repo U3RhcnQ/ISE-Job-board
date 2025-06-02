@@ -5,21 +5,23 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-public class Student {
+public class Student implements Comparable<Student>{
 
     public int studentNumber;
-    public int rank;
+    public Integer rank;
     public ArrayList<Job> jobPreferences;
     public HashMap<Long, Job> availableJobs;
     public ArrayList<Job> interviews;
 
     private static final Map<String, String> env = System.getenv();
 
-    public Student(int studentNumber, int rank, HashMap<Long, Job> availableJobs){
+    public Student(int studentNumber, int rank, HashMap<Long, Job> availableJobs)throws SQLException{
         this.studentNumber = studentNumber;
         this.rank = rank;
         this.availableJobs = availableJobs;
         this.interviews = new ArrayList<Job>();
+        this.jobPreferences = new ArrayList<>();
+        getStudentPreferences();
     }
 
     public static String getYear(String token) throws SQLException{
@@ -85,9 +87,10 @@ public class Student {
      */
     public void getStudentPreferences()throws SQLException{
         //prepared statement to prevent sql injections
-        String sql =("SELECT job_id, preference" +
-                "FROM student_preference" +
-                "WHERE student_number = ? ");
+        String sql =("SELECT job_id, preference " +
+                "FROM student_preference " +
+                "WHERE student_number = ? " +
+                "ORDER BY preference ASC");
         try (Connection connection = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
                 env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
              PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -97,7 +100,7 @@ public class Student {
             try (ResultSet rs = statement.executeQuery()) {//execute query
                //for  every result set the preference of each job and making references to the common job pool
                 while (rs.next()) {
-                    this.jobPreferences.set(rs.getInt("preference"), availableJobs.get("job_id"));
+                    this.jobPreferences.add(availableJobs.get(rs.getLong("job_id")));
                 }
             }
         } catch (SQLException e) {
@@ -115,5 +118,9 @@ public class Student {
             }
         }
         return false;
+    }
+    @Override
+    public int compareTo(Student other){
+        return (Integer)this.rank.compareTo(rank.compareTo(other.rank));
     }
 }

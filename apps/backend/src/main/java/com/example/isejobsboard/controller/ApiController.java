@@ -8,7 +8,6 @@ import com.example.isejobsboard.model.SmallJob;
 import com.example.isejobsboard.controller.schemas.Student;
 import com.example.isejobsboard.repository.GreetingMessageRepository;
 import com.example.isejobsboard.security.SHA256;
-import com.example.isejobsboard.Utils.CompanyUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -926,15 +925,16 @@ public class ApiController {
         }
     }
 
-//    @GetMapping("/test")
-//    public ResponseEntity<Object>test(){
-//        try{
-//
-//            return ResponseEntity.ok(Job.getJobs("r3"));
-//        }catch (SQLException e){
-//            e.printStackTrace();
-//            return ResponseEntity.status(500).body(Map.of("error", "it didnt pass the test"));
-//        }
-//    }
+    @GetMapping("/test")
+    public ResponseEntity<Object>test(){
+        try{
+            InterviewAllocation interviewsAllocations = new InterviewAllocation("1","r1");
+            return ResponseEntity.status(200).body(Map.of("success", "Interviews Allocated successfully"));
+
+        }catch (SQLException e){
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of("error", "it didnt pass the test"));
+        }
+    }
 
 }

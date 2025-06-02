@@ -2,19 +2,21 @@ package com.example.isejobsboard.controller.schemas;
 
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-public class interviewAllocation {
+public class InterviewAllocation {
     private static final Map<String, String> env = System.getenv();
     private ArrayList<Student> studentRanking;
     private final String year;
     private HashMap<Long,Job> availableJobs;
     private String residency;
 
-    public interviewAllocation(String year, String residency)throws SQLException{
+    public InterviewAllocation(String year, String residency)throws SQLException{
         this.year = year;
         this.residency = residency;
+        this.studentRanking = new ArrayList<>();
 
         try {
             switch (this.residency){
@@ -29,7 +31,7 @@ public class interviewAllocation {
             e.printStackTrace();
             throw new SQLException();
         }
-        String sql = "SELECT student_number, rank " +
+        String sql = "SELECT student_number, class_rank " +
                 "FROM student " +
                 "WHERE year = ?";
 
@@ -42,14 +44,22 @@ public class interviewAllocation {
             try(ResultSet rs = statement.executeQuery()) {// query can fail
                 while(rs.next()){
                     int student_number = rs.getInt("student_number");
-                    int rank = rs.getInt("rank");
-                    this.studentRanking.add(rank, new Student(student_number,rank, this.availableJobs));
+                    int rank = rs.getInt("class_rank");
+                    this.studentRanking.add(new Student(student_number,rank, this.availableJobs));//issue  cant just add your going to have to sort or do a hash map
                 }
+                Collections.sort(this.studentRanking);
             }
             //if a query fails or connection fails
         } catch (SQLException e) {
             e.printStackTrace();
             throw new SQLException();
+        }
+        allocate();
+        for(Student student: studentRanking) {
+            System.out.println(student.studentNumber);
+            for(Job job: student.interviews){
+               System.out.println( job.getJobId());
+            }
         }
     }
     public void allocate(){
