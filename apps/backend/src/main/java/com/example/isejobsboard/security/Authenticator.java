@@ -163,6 +163,7 @@ public class Authenticator {
             }
         } catch (SQLException e) {
             e.printStackTrace();
+            throw new SQLException();
         }
         return "";
     }

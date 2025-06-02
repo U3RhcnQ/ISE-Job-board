@@ -925,8 +925,193 @@ public class ApiController {
         }
     }
 
-    @GetMapping("/test")
-    public ResponseEntity<Object>test(){
+    @GetMapping("jobs-to-rank")
+    public ResponseEntity<Object> jobsToRank (@RequestHeader("Authorization") String authHeader, @RequestParam String residency){
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).body(Map.of("error", "Malformed Authorization header."));
+        }
+        String token = authHeader.substring(7);//get the token
+
+        try{
+            if (!Authenticator.getAccessLevel(token).equals("student")){//make sure the user is a student
+                return ResponseEntity.status(401).body(Map.of("error","you are not a student"));
+            }
+            String year = Student.getYear(token);
+            String sql;
+            List<JobToRank> userData = new ArrayList<>();
+
+             switch (residency){
+                case "r1":
+                    if(!year.equals("1")){
+                        return ResponseEntity.status(401).body(Map.of("error", "you don't have access to these residencies"));
+                    }
+                    sql ="SELECT j.job_title, j.job_id, " +
+                            " c.name " +
+                            "FROM job j " +
+                            "INNER JOIN company c " +
+                            "ON j.company_id = c.company_id " +
+                            "WHERE j.residency = 'r1' OR 'r1+r2' " +
+                            "AND j.approval ='approved'";
+
+                    try (Connection connection = DriverManager.getConnection(dbUrl,
+                            env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+                         PreparedStatement statement = connection.prepareStatement(sql)) {
+                        try (ResultSet rs = statement.executeQuery()) {
+                            //adds all the jobs associated with the residency
+                            while (rs.next()) {
+                                JobToRank jobToRank = new JobToRank(rs.getString("job_title"),(long) rs.getInt("job_id"),
+                                        rs.getString("name"));
+                                userData.add(jobToRank);
+                            }
+                        }
+
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                        return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
+                    }
+                    return ResponseEntity.ok(userData);
+                case "r2":
+                     if(!year.equals("1")){
+                         return ResponseEntity.status(401).body(Map.of("error", "you don't have access to these residencies"));
+                     }
+                     sql ="SELECT j.job_title, j.job_id, " +
+                             " c.name " +
+                             "FROM job j " +
+                             "INNER JOIN company c " +
+                             "ON j.company_id = c.company_id " +
+                             "WHERE j.residency = 'r2' " +
+                             "AND j.approval ='approved'";
+
+                     try (Connection connection = DriverManager.getConnection(dbUrl,
+                             env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+                          PreparedStatement statement = connection.prepareStatement(sql)) {
+                         try (ResultSet rs = statement.executeQuery()) {
+                             //adds all the jobs associated with the residency
+                             while (rs.next()) {
+                                 JobToRank jobToRank = new JobToRank(rs.getString("job_title"),(long) rs.getInt("job_id"),
+                                        rs.getString("name"));
+                                userData.add(jobToRank);
+                             }
+                         }
+
+                     } catch (SQLException e) {
+                         e.printStackTrace();
+                         return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
+                     }
+                     return ResponseEntity.ok(userData);
+                case "r3":
+                     if(!year.equals("2")){
+                         return ResponseEntity.status(401).body(Map.of("error", "you don't have access to these residencies"));
+                     }
+                     sql ="SELECT j.job_title, j.job_id, " +
+                             " c.name " +
+                             "FROM job j " +
+                             "INNER JOIN company c " +
+                             "ON j.company_id = c.company_id " +
+                             "WHERE j.residency = 'r3' " +
+                             "AND j.approval ='approved'";
+
+                     try (Connection connection = DriverManager.getConnection(dbUrl,
+                             env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+                          PreparedStatement statement = connection.prepareStatement(sql)) {
+                         try (ResultSet rs = statement.executeQuery()) {
+                             //adds all the jobs associated with the residency
+                             while (rs.next()) {
+                                 JobToRank jobToRank = new JobToRank(rs.getString("job_title"),(long) rs.getInt("job_id"),
+                                         rs.getString("name"));
+                                 userData.add(jobToRank);
+                             }
+                         }
+
+                     } catch (SQLException e) {
+                         e.printStackTrace();
+                         return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
+                     }
+                     return ResponseEntity.ok(userData);
+                case "r4":
+                     if(!year.equals("3")){
+                         return ResponseEntity.status(401).body(Map.of("error", "you don't have access to these residencies"));
+                     }
+                     sql ="SELECT j.job_title, j.job_id, " +
+                             " c.name " +
+                             "FROM job j " +
+                             "INNER JOIN company c " +
+                             "ON j.company_id = c.company_id " +
+                             "WHERE j.residency = 'r4' " +
+                             "AND j.approval ='approved'";
+
+                     try (Connection connection = DriverManager.getConnection(dbUrl,
+                             env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+                          PreparedStatement statement = connection.prepareStatement(sql)) {
+                         try (ResultSet rs = statement.executeQuery()) {
+                             //adds all the jobs associated with the residency
+                             while (rs.next()) {
+                                 JobToRank jobToRank = new JobToRank(rs.getString("job_title"),(long) rs.getInt("job_id"),
+                                         rs.getString("name"));
+                                 userData.add(jobToRank);
+                             }
+                         }
+
+                     } catch (SQLException e) {
+                         e.printStackTrace();
+                         return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
+                     }
+                     return ResponseEntity.ok(userData);
+                case "r5":
+                     if(!year.equals("4")){
+                         return ResponseEntity.status(401).body(Map.of("error", "you don't have access to these residencies"));
+                     }
+                     sql ="SELECT j.job_title, j.job_id, " +
+                             " c.name " +
+                             "FROM job j " +
+                             "INNER JOIN company c " +
+                             "ON j.company_id = c.company_id " +
+                             "WHERE j.residency = 'r5' " +
+                             "AND j.approval ='approved'";
+
+                     try (Connection connection = DriverManager.getConnection(dbUrl,
+                             env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+                          PreparedStatement statement = connection.prepareStatement(sql)) {
+                         try (ResultSet rs = statement.executeQuery()) {
+                             //adds all the jobs associated with the residency
+                             while (rs.next()) {
+                                 JobToRank jobToRank = new JobToRank(rs.getString("job_title"),(long) rs.getInt("job_id"),
+                                         rs.getString("name"));
+                                 userData.add(jobToRank);
+                             }
+                         }
+
+                     } catch (SQLException e) {
+                         e.printStackTrace();
+                         return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
+                     }
+                     return ResponseEntity.ok(userData);
+                 default:
+                     return ResponseEntity.status(401).body(Map.of("error", "residency must be enter in e.g r1"));
+             }
+
+
+
+        }
+        catch (SQLException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
+        }
+
+    }
+
+    @PostMapping("/allocate")
+    public ResponseEntity<Object>test(@RequestHeader("Authorization") String authHeader, @RequestParam String residency){
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).body(Map.of("error", "Malformed Authorization header."));
+        }
+
+        String token = authHeader.substring(7);
+        try{
+            Authenticator.getAccessLevel(token);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
         try{
             InterviewAllocation interviewsAllocations = new InterviewAllocation("1","r1");
             return ResponseEntity.status(200).body(Map.of("success", "Interviews Allocated successfully"));
