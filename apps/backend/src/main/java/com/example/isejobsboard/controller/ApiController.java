@@ -3,6 +3,7 @@ package com.example.isejobsboard.controller;
 import com.example.isejobsboard.Utils.CompanyUtils;
 import com.example.isejobsboard.Utils.DatabaseUtils;
 import com.example.isejobsboard.Utils.JobUtils;
+import com.example.isejobsboard.controller.schemas.Company;
 import com.example.isejobsboard.model.GreetingMessage;
 import com.example.isejobsboard.model.SmallJob;
 import com.example.isejobsboard.controller.schemas.Student;

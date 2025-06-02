@@ -1,10 +1,25 @@
 package com.example.isejobsboard.controller.schemas;
 
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 
 public class Student {
+
+    public int studentNumber;
+    public int rank;
+    public ArrayList<Job> jobPreferences;
+    public HashMap<Long, Job> availableJobs;
+
     private static final Map<String, String> env = System.getenv();
+
+    public Student(int studentNumber, int rank, HashMap<Long, Job> availableJobs){
+        this.studentNumber = studentNumber;
+        this.rank = rank;
+        this.availableJobs = availableJobs;
+    }
+
     public static String getYear(String token) throws SQLException{
         //quary that looks for the year of the associated student user with the session token
         String sql = "SELECT s.year " +
@@ -59,5 +74,34 @@ public class Student {
             e.printStackTrace();
             throw new SQLException();
         }
+    }
+
+    /**
+     *
+     * @throws SQLException
+     * <p>used for assigning students job preferences</p>
+     */
+    public void getStudentPreferences()throws SQLException{
+        //prepared statement to prevent sql injections
+        String sql =("SELECT job_id, preference" +
+                "FROM student_preference" +
+                "WHERE student_number = ? ");
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
+                env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setInt(1, this.studentNumber);
+
+            try (ResultSet rs = statement.executeQuery()) {//execute query
+               //for  every result set the preference of each job and making references to the common job pool
+                while (rs.next()) {
+                    this.jobPreferences.set(rs.getInt("preference"), availableJobs.get("job_id"));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw new SQLException();
+        }
+
     }
 }
