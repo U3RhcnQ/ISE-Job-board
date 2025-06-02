@@ -62,7 +62,7 @@ public class InterviewAllocation {
             }
         }
     }
-    public void allocate(){
+    public void allocate()throws SQLException{
         for(Student student : this.studentRanking){
             for(Job preferedJob : student.jobPreferences){
                 if (student.interviews.size() == 3){
@@ -74,6 +74,28 @@ public class InterviewAllocation {
                 }
             }
         }
+        String sql = "INSERT INTO interview_allocation " +
+                "(student_number, job_id) VALUES (?, ?)";
+        //automatic resource allocation
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
+                env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            for(Student student: this.studentRanking){
+                for (Job jobInterview: student.interviews){
+                    statement.setInt(1, student.studentNumber);
+                    statement.setLong(2, jobInterview.getJobId());
+                    statement.executeUpdate();
+                }
+            }
+            //safely set the statement
+            statement.setString(1, year);
+
+            //if a query fails or connection fails
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw new SQLException();
+        }
+
     }
 
 }
