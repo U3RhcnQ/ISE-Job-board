@@ -1092,7 +1092,7 @@ public class ApiController {
                          return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
                      }
                      return ResponseEntity.ok(userData);
-                 default:
+                default:
                      return ResponseEntity.status(401).body(Map.of("error", "residency must be enter in e.g r1"));
              }
 
@@ -1113,10 +1113,13 @@ public class ApiController {
         }
 
         String token = authHeader.substring(7);
+
         try{
-            Authenticator.getAccessLevel(token);
+            if(!Authenticator.getAccessLevel(token).equals("admin")){
+                throw new SQLException("not an admin");
+            }
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            return ResponseEntity.status(401).body(Map.of("error", "only admins can allocate"));
         }
         try{
             InterviewAllocation interviewsAllocations = new InterviewAllocation("1","r1");
@@ -1124,7 +1127,7 @@ public class ApiController {
 
         }catch (SQLException e){
             e.printStackTrace();
-            return ResponseEntity.status(500).body(Map.of("error", "it didnt pass the test"));
+            return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
         }
     }
 
