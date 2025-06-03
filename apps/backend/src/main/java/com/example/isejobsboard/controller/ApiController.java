@@ -157,6 +157,48 @@ public class ApiController {
             return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred during logout."));
         }
     }
+    @PutMapping("/update-company")
+    public ResponseEntity<Object> addCompany(@RequestBody Company company, @RequestHeader("Authorization") String authHeader, @RequestParam int companyId) throws SQLException {
+        //  Validate the Authorization header format ("Bearer <token>")
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(400).body(Map.of("error", "Malformed Authorization header."));
+        }
+
+        //  Extract the token from the header
+        String token = authHeader.substring(7); // "Bearer " is 7 characters
+
+        if (!Authenticator.isTokenValid(token)) {
+            return ResponseEntity.status(401).body(Map.of("error", "Invalid Token"));
+        }
+        if(!Authenticator.getAccessLevel(token).equals("admin")){
+            return ResponseEntity.status(401).body(Map.of("error", "Invalid Access Level"));
+        }
+
+        // Use a PreparedStatement with placeholders (?) to prevent SQL Injection
+        String query = "UPDATE company " +
+                "SET name = ?, website = ?, champion = ? " +
+                "WHERE company_id = ?";
+
+        // Use try-with-resources for automatic resource management
+        try (Connection userConnection = DriverManager.getConnection(dbUrl, env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+             PreparedStatement userStatement = userConnection.prepareStatement(query)) {
+
+            // Safely set the parameters
+            userStatement.setString(1, company.getName());
+            userStatement.setString(2, company.getWebsite());
+            userStatement.setString(3, company.getChampion());
+            userStatement.setInt(4, companyId);
+
+            userStatement.executeUpdate();
+
+            // SUCCESS: Company was updated. Return 204 Created.
+            return ResponseEntity.status(204).body(Map.of("message", "Company updated successfully"));
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
+        }
+    }
 
     @PostMapping("/logout")
     public ResponseEntity<Object> logout(@RequestHeader("Authorization") String authHeader) {
@@ -1187,12 +1229,16 @@ public class ApiController {
             switch(residency){
                 case "r1":
                     interviewsAllocations = new InterviewAllocation("1", "r1");
+                    break;
                 case "r2":
                     interviewsAllocations = new InterviewAllocation("1", "r2");
+                    break;
                 case "r3":
                     interviewsAllocations = new InterviewAllocation("2", "r3");
+                    break;
                 case "r4":
                     interviewsAllocations = new InterviewAllocation("3", "r4");
+                    break;
                 case "r5":
                     interviewsAllocations = new InterviewAllocation("4", "r5");
 
@@ -1204,8 +1250,8 @@ public class ApiController {
             return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
         }
     }
-    @GetMapping("/get-allocation")
-    public ResponseEntity<Object> getAllocations(@RequestHeader("Authorisation") String authHeader, @RequestParam String residency){
+    @GetMapping("/get-allocations")
+    public ResponseEntity<Object> getAllocations(@RequestHeader("Authorization") String authHeader, @RequestParam String residency){
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             return ResponseEntity.status(401).body(Map.of("error", "Malformed Authorization header."));
         }
@@ -1220,7 +1266,7 @@ public class ApiController {
             return ResponseEntity.status(401).body(Map.of("error", "only admins can allocate"));
         }
         try{
-          return ResponseEntity.ok(Interview.getInterviews("residency"));
+          return ResponseEntity.ok(Interview.getInterviews(residency));
         }catch (SQLException e){
             e.printStackTrace();
             return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));

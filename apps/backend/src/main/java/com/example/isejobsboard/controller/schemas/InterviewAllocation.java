@@ -56,12 +56,12 @@ public class InterviewAllocation {
             throw new SQLException();
         }
         allocate();
-        for(Student student: studentRanking) {
-            System.out.println(student.studentNumber);
-            for(Job job: student.interviews){
-               System.out.println(job.getJobId());
-            }
-        }
+//        for(Student student: studentRanking) {
+//            System.out.println(student.studentNumber);
+//            for(Job job: student.interviews){
+//               System.out.println(job.getJobId());
+//            }
+//        }
     }
     public void allocate()throws SQLException{
         for(Student student : this.studentRanking){
