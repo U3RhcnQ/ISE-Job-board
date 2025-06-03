@@ -1177,9 +1177,33 @@ public class ApiController {
         List<Object> usersDataList = new ArrayList<>();
 
         try {
-            if (Authenticator.isTokenValid(token)) {
+            if (Authenticator.getAccessLevel(token).equals("admin")) {
                 //get info associated with rep users
                 switch (userType) {
+                    case "admins":
+                        sql = "SELECT u.user_id, u.email, u.first_name, " +
+                                "u.last_name " +
+                                "FROM users u " +
+                                "JOIN admins a ON u.user_id = a.user_id ";
+                        try (Connection connection = DriverManager.getConnection(dbUrl,
+                                env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+                             PreparedStatement statement = connection.prepareStatement(sql)) {
+                            try (ResultSet rs = statement.executeQuery()) {
+                                while (rs.next()) {
+                                    Map<String, Object> userData = new HashMap<>();
+                                    userData.put("userId", rs.getInt("user_id"));
+                                    userData.put("firstName", rs.getString("first_name"));
+                                    userData.put("lastName", rs.getString("last_name"));
+                                    userData.put("email", rs.getString("email"));
+                                    usersDataList.add(userData);
+
+                                }
+                                return ResponseEntity.ok(usersDataList);
+                            }
+                        } catch (SQLException e) {
+                            e.printStackTrace();
+                            return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
+                        }
                     case "reps":
                         sql = "SELECT u.user_id, u.email, u.first_name, " +
                                 "u.last_name, r.rep_id, r.company_id, " +
