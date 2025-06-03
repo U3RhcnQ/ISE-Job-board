@@ -8,10 +8,7 @@ import { NumericFormat } from "react-number-format";
 import { useAuth } from "../hooks/useAuth.js"
 
 // Shadcn/ui Dialog components
-import {
-    Dialog,
-    DialogTrigger,
-} from "../components/ui/dialog";
+import { Dialog } from "../components/ui/dialog";
 import JobDetailsModal from "../components/JobDetailsModal";
 import JobActionCard from "../components/JobActionCard";
 
@@ -19,7 +16,7 @@ const API_BASE_URL = "http://localhost:8080/api/v1";
 
 
 
-const JobCard = ({ id, company, title, salary, description, tags, positionCount, user, onViewDetailsRequest }) => {
+const JobCard = ({ id, company, title, salary, description, tags, positionCount, user, onViewDetailsRequest, approval }) => {
 
     return (
         <Card className="flex flex-col hover:shadow-lg transition-shadow duration-300">
@@ -30,6 +27,14 @@ const JobCard = ({ id, company, title, salary, description, tags, positionCount,
                         <CardDescription><NumericFormat value={salary.toFixed(0)} displayType={'text'} thousandSeparator={true} prefix={'€ '} /> per/month </CardDescription>
                     </div>
                     <div className="flex flex-shrink-0 gap-1">
+                        <Badge variant="default" className={
+                            approval === 'approved' ? 'bg-green-100 text-green-700'
+                                : approval === 'pending' ? 'bg-yellow-100 text-yellow-700'
+                                    : approval === 'rejected' ? 'bg-red-100 text-red-700'
+                                        : 'bg-gray-100 text-gray-700' }
+                        >
+                            {approval.charAt(0).toUpperCase() + approval.slice(1)}
+                        </Badge>
                         {tags.map(tag => (
                             <Badge key={tag} variant="default" className="bg-green-100 text-green-800 border border-green-200">{tag}</Badge>
                         ))}
@@ -46,16 +51,13 @@ const JobCard = ({ id, company, title, salary, description, tags, positionCount,
                 </div>
                 <div className="flex gap-2">
                     {user.access_level === "admin" && (
-                        <>
-                            <Button variant="outline">Approve</Button>
-                            <Button className={"bg-green-600 hover:bg-green-700"} onClick={() => onViewDetailsRequest(id)}>Edit</Button>
-                        </>
+                        <Button className={"bg-green-600 hover:bg-green-700"} onClick={() => onViewDetailsRequest(id)}>Edit</Button>
                     )}
                     {user.access_level === "rep" && (
                         <Button className={"bg-green-600 hover:bg-green-700"} onClick={() => onViewDetailsRequest(id)}>Edit</Button>
                     )}
                     {user.access_level === "student" && (
-                        <Button className={"bg-green-600 hover:bg-green-700"} onClick={() => onViewDetailsRequest(id)}>Edit</Button>
+                        <Button className={"bg-green-600 hover:bg-green-700"} onClick={() => onViewDetailsRequest(id)}>Read More</Button>
                     )}
                 </div>
             </CardFooter>
@@ -116,7 +118,7 @@ const Jobs = () => {
                 salaryValue: apiJob.salary,
                 postedDate: apiJob.postDate || new Date().toISOString(),
                 tags: apiJob.residency ? [apiJob.residency.toUpperCase()] : [],
-                approvalStatus: apiJob.approval || false,
+                approvalStatus: apiJob.approval	 || 'N/A',
                 positionCount: apiJob.positionCount || 0,
             }));
             setJobsData(transformedData);
@@ -157,6 +159,9 @@ const Jobs = () => {
             if (activeFilter === 'R3') return job.tags.includes('R3') && job.tags.length === 1;
             if (activeFilter === 'R4') return job.tags.includes('R4') && job.tags.length === 1;
             if (activeFilter === 'R5') return job.tags.includes('R5') && job.tags.length === 1;
+            if (activeFilter === 'Approved') return job.approvalStatus === 'approved';
+            if (activeFilter === 'Pending') return job.approvalStatus === 'pending';
+            if (activeFilter === 'Rejected') return job.approvalStatus === 'rejected';
             return job.tags.includes(activeFilter);
         });
 
@@ -256,6 +261,13 @@ const Jobs = () => {
                             <Button variant={activeFilter === 'R3' ? 'default' : 'outline'} className={activeFilter === 'R3' ? "bg-green-600 hover:bg-green-700" : ""} onClick={() => setActiveFilter('R3')}>R3</Button>
                             <Button variant={activeFilter === 'R4' ? 'default' : 'outline'} className={activeFilter === 'R4' ? "bg-green-600 hover:bg-green-700" : ""} onClick={() => setActiveFilter('R4')}>R4</Button>
                             <Button variant={activeFilter === 'R5' ? 'default' : 'outline'} className={activeFilter === 'R5' ? "bg-green-600 hover:bg-green-700" : ""} onClick={() => setActiveFilter('R5')}>R5</Button>
+                            {user.access_level === 'admin' && (
+                                <>
+                                <Button variant={activeFilter === 'Approved' ? 'default' : 'outline'} className={activeFilter === 'Approved' ? "bg-green-600 hover:bg-green-700" : ""} onClick={() => setActiveFilter('Approved')}>Approved</Button>
+                                <Button variant={activeFilter === 'Pending' ? 'default' : 'outline'} className={activeFilter === 'Pending' ? "bg-green-600 hover:bg-green-700" : ""} onClick={() => setActiveFilter('Pending')}>Pending</Button>
+                                <Button variant={activeFilter === 'Rejected' ? 'default' : 'outline'} className={activeFilter === 'Rejected' ? "bg-green-600 hover:bg-green-700" : ""} onClick={() => setActiveFilter('Rejected')}>Rejected</Button>
+                                </>
+                             )}
                         </>
                     )}
                 </div>
@@ -279,7 +291,7 @@ const Jobs = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
                 {displayedJobs.map(job => (
-                    <JobCard key={job.id} user={user} {...job} onViewDetailsRequest={handleOpenEditViewJobModal} />
+                    <JobCard key={job.id} user={user} {...job} approval={job.approvalStatus} onViewDetailsRequest={handleOpenEditViewJobModal} />
                 ))}
 
                 {(user.access_level === "admin" || user.access_level === "rep") && (
