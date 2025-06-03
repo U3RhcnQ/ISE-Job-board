@@ -6,6 +6,7 @@ import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "../
 import {Users} from "lucide-react";
 import { NumericFormat } from "react-number-format";
 import { useAuth } from "../hooks/useAuth.js"
+import loadingSpinner from '../components/loadingSpinner.jsx';
 
 // Shadcn/ui Dialog components
 import { Dialog } from "../components/ui/dialog";
@@ -13,7 +14,6 @@ import JobDetailsModal from "../components/JobDetailsModal";
 import JobActionCard from "../components/JobActionCard";
 
 const API_BASE_URL = "http://localhost:8080/api/v1";
-
 
 
 const JobCard = ({ id, company, title, salary, description, tags, positionCount, user, onViewDetailsRequest, approval }) => {
@@ -27,6 +27,7 @@ const JobCard = ({ id, company, title, salary, description, tags, positionCount,
                         <CardDescription><NumericFormat value={salary.toFixed(0)} displayType={'text'} thousandSeparator={true} prefix={'€ '} /> per/month </CardDescription>
                     </div>
                     <div className="flex flex-shrink-0 gap-1">
+                        {user.access_level === 'admin' && (
                         <Badge variant="default" className={
                             approval === 'approved' ? 'bg-green-100 text-green-700'
                                 : approval === 'pending' ? 'bg-yellow-100 text-yellow-700'
@@ -35,6 +36,7 @@ const JobCard = ({ id, company, title, salary, description, tags, positionCount,
                         >
                             {approval.charAt(0).toUpperCase() + approval.slice(1)}
                         </Badge>
+                        )}
                         {tags.map(tag => (
                             <Badge key={tag} variant="default" className="bg-green-100 text-green-800 border border-green-200">{tag}</Badge>
                         ))}
@@ -205,7 +207,7 @@ const Jobs = () => {
 
     // Step 3: Handle the loading state while user is being fetched
     if (authIsLoading || jobsIsLoading) {
-        return <div className="container mx-auto p-8 text-center">Loading user data...</div>;
+        return loadingSpinner({text: 'Loading user data...'});
     }
 
     // It's also good practice to handle the case where user might still be null after loading

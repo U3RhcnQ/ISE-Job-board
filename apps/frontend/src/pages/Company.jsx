@@ -93,7 +93,7 @@ const Company = () => {
 
     // --- Loading State ---
     if (authLoading || (isLoading && !error && !companyData)) {
-        return loadingSpinner('Loading Company Information...');
+        return loadingSpinner({text: 'Loading Company Information...'});
     }
 
     // --- Error States ---

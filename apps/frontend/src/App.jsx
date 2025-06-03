@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
 import { Button } from './components/ui/button';
 import { Menu, X, LogOut, Briefcase, BarChart2, InfoIcon as InfoPageIcon } from 'lucide-react'; // Renamed InfoIcon
+import loadingSpinner from "./components/loadingSpinner.jsx";
 import { useAuth } from './hooks/useAuth.js';
 import { AuthProvider } from './context/AuthContext';
 
@@ -12,14 +13,8 @@ import Jobs from './pages/Jobs';
 import JobDetailPage from './pages/JobDetailPage';
 import Ranking from './pages/Ranking';
 import Company from './pages/Company';
-
-// Placeholder Page Components
-const ResidencyInfo = () => (
-    <div className='container mx-auto p-8'>
-        <h1 className='text-3xl font-bold'>Residency Information Page</h1>
-        <p>Content for Residency Information will go here.</p>
-    </div>
-);
+import AdminDashboard from "./pages/AdminDashboard.jsx";
+import ResidencyInfo  from "./pages/ResidencyInfo";
 
 // ProtectedRoute HOC
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -27,7 +22,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     const location = useLocation();
 
     if (isLoading) {
-        return <div className='flex justify-center items-center h-screen'>Loading...</div>; // Or a nice spinner
+        return loadingSpinner({text: 'Loading...'});
     }
 
     if (!isAuthenticated) {
@@ -97,6 +92,9 @@ function AppLayout() {
                                 <>
                                     <Button asChild variant='ghost' className={commonButtonClasses}>
                                         <Link to='/jobs'>Jobs Board</Link>
+                                    </Button>
+                                    <Button asChild variant='ghost' className={commonButtonClasses}>
+                                        <Link to='/admin-dashboard'>Admin Dashboard</Link>
                                     </Button>
                                     <Button asChild variant='ghost' className={commonButtonClasses}>
                                         <Link to='/info'>Residency Info</Link>
@@ -209,6 +207,14 @@ function AppLayout() {
                         element={
                             <ProtectedRoute allowedRoles={['rep', 'admin']}>
                                 <Company />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path='/admin-dashboard'
+                        element={
+                            <ProtectedRoute allowedRoles={['admin']}>
+                                <AdminDashboard />
                             </ProtectedRoute>
                         }
                     />

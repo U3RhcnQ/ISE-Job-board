@@ -46,7 +46,7 @@ export const CompanyCard = ({ item, index, onCardClick, containerId }) => {
                         )}
                         <div>
                             <CardTitle>{item.companyName}</CardTitle>
-                            <CardDescription>{item.jobName}</CardDescription>
+                            <CardDescription>{item.jobTitle}</CardDescription>
                         </div>
                     </div>
                     <Button

@@ -25,6 +25,7 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from '../components/ui/alert-dialog';
+import loadingSpinner from "@/components/loadingSpinner.jsx";
 
 // Use these keys to store our data in localStorage
 const RANKED_ITEMS_STORAGE_KEY = 'rankedItems';
@@ -32,14 +33,6 @@ const AVAILABLE_ITEMS_STORAGE_KEY = 'availableItems';
 
 const API_BASE_URL = 'http://localhost:8080/api/v1';
 
-// MOCK DATA: In a real app, you would fetch this from your API.
-const mockCompanies = Array.from({ length: 50 }, (_, i) => ({
-    id: `company-${i + 1}`,
-    companyName: `Tech Corp ${i + 1}`,
-    jobName: `Software Engineer ${i + 1}`,
-}));
-
-const TOTAL_COMPANIES = 50;
 
 export const Ranking = () => {
 
@@ -77,11 +70,18 @@ export const Ranking = () => {
             }
 
             setIsLoading(true);
-            let companiesData = [];
+            let rawCompaniesData = []; // Store raw API response
+            let processedCompaniesData = [];
+
+            //Default for Year, 2,3,4
+            let residencyYear = user.year;
+            if (user.year === 1 && (new Date().getMonth() * 100 + new Date().getDate()) > (6 * 100 + 23)) {
+                residencyYear = 2;
+            }
 
             try {
                 // Your API call logic
-                const response = await fetch(`${API_BASE_URL}/jobs-to-rank?residency=r${user.year}`, {
+                const response = await fetch(`${API_BASE_URL}/jobs-to-rank?residency=r${residencyYear}`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
 
@@ -91,12 +91,19 @@ export const Ranking = () => {
                         `Fetch error: ${response.status} - ${errorText || response.statusText}`
                     );
                 }
-                companiesData = await response.json();
+                rawCompaniesData = await response.json();
+
+                processedCompaniesData = rawCompaniesData.map(company => ({
+                    ...company,
+                    id: String(company.jobId) // Assuming 'jobId' is the unique ID from your API. Convert to string for consistency.
+                    // Ensure 'jobId' exists and is unique for each item.
+                }));
+
                 // Ensure the data structure matches what CompanyCard expects:
                 // e.g., [{ id: '...', companyName: '...', jobName: '...' }, ...]
 
-                setAllFetchedCompanies(companiesData); // Store all fetched companies
-                setTotalCompaniesFromAPI(companiesData.length); // Update total based on API response
+                setAllFetchedCompanies(processedCompaniesData); // Store all fetched companies
+                setTotalCompaniesFromAPI(processedCompaniesData.length); // Update total based on API response
 
             } catch (err) {
                 console.error('Fetch job details error:', err);
@@ -115,15 +122,15 @@ export const Ranking = () => {
 
             if (savedRanked && savedRanked.length > 0) {
                 // Ensure saved ranked items are still valid against the newly fetched company list (optional, but good for data integrity)
-                const validSavedRanked = savedRanked.filter(sItem => companiesData.some(cItem => cItem.id === sItem.id));
+                const validSavedRanked = savedRanked.filter(sItem => processedCompaniesData.some(cItem => cItem.id === sItem.id));
                 const rankedIds = new Set(validSavedRanked.map((item) => item.id));
-                const calculatedAvailable = companiesData.filter((item) => !rankedIds.has(item.id));
+                const calculatedAvailable = processedCompaniesData.filter((item) => !rankedIds.has(item.id));
 
                 setRankedItems(validSavedRanked);
                 setAvailableItems(calculatedAvailable);
             } else {
                 // Fresh session or no valid saved rankings
-                setAvailableItems(companiesData);
+                setAvailableItems(processedCompaniesData);
                 setRankedItems([]);
             }
 
@@ -167,7 +174,7 @@ export const Ranking = () => {
     const filteredAvailableItems = useMemo(
         () =>
             availableItems.filter((item) =>
-                item.companyName.toLowerCase().includes(searchTerm.toLowerCase())
+                item.companyName.toLowerCase().includes(searchTerm.toLowerCase()) || item.jobTitle.toLowerCase().includes(searchTerm.toLowerCase())
             ),
         [availableItems, searchTerm]
     );
@@ -276,26 +283,66 @@ export const Ranking = () => {
         }
     };
 
-    const handleSubmit = () => {
-        if (rankedItems.length !== TOTAL_COMPANIES) {
-            alert(`Please rank all ${TOTAL_COMPANIES} companies before submitting.`);
+    const handleSubmit = async () => { // Make it async if your fetch call is async
+        if (rankedItems.length !== totalCompaniesFromAPI) {
+            alert(`Please rank all ${totalCompaniesFromAPI} companies before submitting.`);
+            setIsSubmitDialogOpen(false); // Close the confirmation dialog if validation fails
             return;
         }
-        const rankedIds = rankedItems.map((item) => item.id);
-        console.log('Submitting ranked IDs:', rankedIds);
-        // TODO: Add your fetch POST/PUT request here to send `rankedIds` to your API
-        // e.g., fetch('/api/v1/rankings', { method: 'POST', body: JSON.stringify({ companyIds: rankedIds }) })
-        setIsSubmitSuccessAlertOpen(true);
+
+        // Transform rankedItems into the desired payload format
+        const payload = rankedItems.map((item, index) => ({
+            preference: String(index + 1), // Preference is 1-based index, ensure it's a string
+            jobId: String(item.id)        // Ensure jobId is a string (it likely already is from your mapping)
+        }));
+
+        console.log('Submitting payload:', payload);
+        setIsSubmitDialogOpen(false); // Close the confirmation dialog before submitting or on success
+
+        try {
+            // Your actual API endpoint and method (POST or PUT)
+            const response = await fetch(`${API_BASE_URL}/set-preferences`, { // Example endpoint
+                method: 'POST', // Or 'PUT' depending on your API design
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`, // Assuming you need auth
+                },
+                body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.text(); // Or response.json() if your API sends JSON errors
+                console.error('Submission error:', response.status, errorData);
+                alert(`Submission failed: ${response.status} - ${errorData || 'Unknown error'}`);
+                // Potentially handle specific error codes here
+                return; // Don't show success if submission failed
+            }
+
+            // If submission is successful:
+            const result = await response.json(); // Or response.text() if no JSON body is returned
+            console.log('Submission successful:', result);
+            setIsSubmitSuccessAlertOpen(true);
+
+            // Optionally, clear local storage and reset state after successful submission
+            // localStorage.removeItem(RANKED_ITEMS_STORAGE_KEY);
+            // localStorage.removeItem(AVAILABLE_ITEMS_STORAGE_KEY);
+            // setRankedItems([]);
+            // setAvailableItems(allFetchedCompanies); // Or an empty array if they shouldn't re-rank immediately
+
+        } catch (error) {
+            console.error('Network or other error during submission:', error);
+            alert(`An error occurred during submission: ${error.message}`);
+        }
     };
 
     const handleReset = () => {
         localStorage.removeItem(RANKED_ITEMS_STORAGE_KEY);
         localStorage.removeItem(AVAILABLE_ITEMS_STORAGE_KEY);
         setRankedItems([]);
-        setAvailableItems(mockCompanies);
+        setAvailableItems(allFetchedCompanies);
     };
 
-    if (isLoading) return <div>Loading...</div>;
+    if (isLoading) return loadingSpinner({text: 'Loading Ranking data...'});
 
     return (
         <div className='container mx-auto p-2 md:p-4'>
@@ -309,7 +356,7 @@ export const Ranking = () => {
                 </div>
                 <div className='font-semibold text-xl text-green-600 pr-2'>
                     <p>
-                        Progress: {rankedItems.length}/{TOTAL_COMPANIES}
+                        Progress: {rankedItems.length}/{totalCompaniesFromAPI}
                     </p>
                 </div>
             </div>
@@ -407,7 +454,7 @@ export const Ranking = () => {
                     <AlertDialogTrigger asChild>
                         <Button
                             size='lg'
-                            disabled={rankedItems.length !== TOTAL_COMPANIES} // Keep disabled logic on trigger
+                            disabled={rankedItems.length !== totalCompaniesFromAPI || totalCompaniesFromAPI === 0} // Keep disabled logic on trigger
                             className={'bg-green-600 hover:bg-green-700'}
                         >
                             Submit Final Rankings

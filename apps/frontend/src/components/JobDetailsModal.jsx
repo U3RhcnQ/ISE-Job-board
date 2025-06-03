@@ -279,6 +279,7 @@ const JobDetailsModal = ({ jobId, onOperationSuccess }) => {
                 case 'rejected':
                     return 0;
                 case 'pending':
+                    return 2;
                 default:
                     return null; // API: blank/NULL - pending
             }
