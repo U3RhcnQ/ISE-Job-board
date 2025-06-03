@@ -329,7 +329,7 @@ public class ApiController {
 
 
                 sql = "SELECT j.job_id, j.job_title, j.salary, " +
-                        "j.description, j.position_count, c.name, " +
+                        "j.description, j.position_count, c.name, c.company_id, " +
                         "j.residency, j.approval, j.residency_title, " +
                         "j.salary, c.website, j.small_description " +
                         "FROM job j " +
@@ -351,6 +351,7 @@ public class ApiController {
                             userData.put("description", rs.getString("description"));
                             userData.put("position_count", rs.getInt("position_count"));
                             userData.put("company_name", rs.getString("name"));
+                            userData.put("company_id", rs.getString("company_id"));
                             userData.put("approval", rs.getString("approval"));
                             userData.put("salary", rs.getFloat("salary"));
                             userData.put("website", rs.getString("website"));
@@ -405,10 +406,15 @@ public class ApiController {
                                 //get all jobs
                                 while (rs.next()) {
                                     //add the job info
-                                    SmallJob jobInfo = new SmallJob((long) rs.getInt("job_id"),rs.getString("job_title"),
+                                    SmallJob jobInfo = new SmallJob((long)
+
+                                            rs.getInt("job_id"),rs.getString("job_title"),
                                             rs.getString("name"),rs.getString("small_description"),
-                                            rs.getFloat("salary"),rs.getString("residency"),rs.getTimestamp("post_date"),
-                                            rs.getInt("position_count"));
+                                            rs.getFloat("salary"),rs.getString("residency"),
+                                            rs.getTimestamp("post_date"),
+                                            rs.getInt("position_count"),
+                                            rs.getString("approval")
+                                            );
                                     userData.add( jobInfo);
 
                                 }

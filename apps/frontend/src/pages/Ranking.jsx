@@ -1,10 +1,18 @@
-import React, {useState, useEffect, useMemo, useRef} from 'react';
-import { DndContext, DragOverlay, rectIntersection, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import {
+    DndContext,
+    DragOverlay,
+    rectIntersection,
+    PointerSensor,
+    useSensor,
+    useSensors,
+} from '@dnd-kit/core';
 import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Column } from '@/components/ranking/Column';
-import { CompanyCard } from '@/components/ranking/CompanyCard';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Column } from '../components/ranking/Column';
+import { CompanyCard } from '../components/ranking/CompanyCard';
+import { useAuth } from '../hooks/useAuth.js';
 // Why so many ?
 import {
     AlertDialog,
@@ -16,12 +24,13 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
     AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import JobDetailPage from "@/pages/JobDetailPage.jsx";
+} from '../components/ui/alert-dialog';
 
 // Use these keys to store our data in localStorage
 const RANKED_ITEMS_STORAGE_KEY = 'rankedItems';
 const AVAILABLE_ITEMS_STORAGE_KEY = 'availableItems';
+
+const API_BASE_URL = 'http://localhost:8080/api/v1';
 
 // MOCK DATA: In a real app, you would fetch this from your API.
 const mockCompanies = Array.from({ length: 50 }, (_, i) => ({
@@ -33,6 +42,8 @@ const mockCompanies = Array.from({ length: 50 }, (_, i) => ({
 const TOTAL_COMPANIES = 50;
 
 export const Ranking = () => {
+
+    const { user, token } = useAuth();
 
     // Get saved data if we have any
     const [availableItems, setAvailableItems] = useState([]);
@@ -51,44 +62,81 @@ export const Ranking = () => {
     const [isSubmitDialogOpen, setIsSubmitDialogOpen] = useState(false);
     const [isSubmitSuccessAlertOpen, setIsSubmitSuccessAlertOpen] = useState(false);
 
+    const [allFetchedCompanies, setAllFetchedCompanies] = useState([]); // To store companies from API
+    const [totalCompaniesFromAPI, setTotalCompaniesFromAPI] = useState(0); // For dynamic total
+
+
     useEffect(() => {
-        // In a real app, this would be your API call to get all 50 companies.
-        const allCompanies = mockCompanies;
+        const loadData = async () => {
+            // Ensure user and token are available before fetching
+            // and user.year is present for the API call.
+            if (!user || !token || user.year === undefined) {
+                console.log("User, token, or user.year not available yet. Waiting...");
+                setIsLoading(false); // Potentially set to false or handle differently
+                return;
+            }
 
-        // Load only the ranked items from storage.
-        const savedRanked = JSON.parse(localStorage.getItem(RANKED_ITEMS_STORAGE_KEY) || 'null');
+            setIsLoading(true);
+            let companiesData = [];
 
-        if (savedRanked && savedRanked.length > 0) {
-            // If we have saved rankings, use them as the source of truth.
-            const rankedIds = new Set(savedRanked.map(item => item.id));
+            try {
+                // Your API call logic
+                const response = await fetch(`${API_BASE_URL}/jobs-to-rank?residency=r${user.year}`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
 
-            // The available list is CALCULATED by taking the full list and filtering out the ranked ones.
-            const calculatedAvailable = allCompanies.filter(item => !rankedIds.has(item.id));
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(
+                        `Fetch error: ${response.status} - ${errorText || response.statusText}`
+                    );
+                }
+                companiesData = await response.json();
+                // Ensure the data structure matches what CompanyCard expects:
+                // e.g., [{ id: '...', companyName: '...', jobName: '...' }, ...]
 
-            setRankedItems(savedRanked);
-            setAvailableItems(calculatedAvailable);
-        } else {
-            // This is a completely fresh session.
-            setAvailableItems(allCompanies);
-            setRankedItems([]);
-        }
+                setAllFetchedCompanies(companiesData); // Store all fetched companies
+                setTotalCompaniesFromAPI(companiesData.length); // Update total based on API response
 
-        setIsLoading(false);
-    }, []); // This runs only once on mount.
+            } catch (err) {
+                console.error('Fetch job details error:', err);
+                // Handle error appropriately, e.g., show error message to user
+                setAllFetchedCompanies([]);
+                setAvailableItems([]);
+                setRankedItems([]);
+                setTotalCompaniesFromAPI(0);
+                setIsLoading(false);
+                return; // Exit if fetch failed
+            }
 
+            // Load ranked items from storage
+            const savedRankedJSON = localStorage.getItem(RANKED_ITEMS_STORAGE_KEY);
+            const savedRanked = savedRankedJSON ? JSON.parse(savedRankedJSON) : null;
 
-    // Save the state into local storage
-    useEffect(() => {
-        if (!isLoading) {
-            // We use JSON.stringify because localStorage can only store strings.
-            localStorage.setItem(RANKED_ITEMS_STORAGE_KEY, JSON.stringify(rankedItems));
-        }
-    }, [rankedItems, availableItems, isLoading]); // This effect runs every time the lists are modified.
+            if (savedRanked && savedRanked.length > 0) {
+                // Ensure saved ranked items are still valid against the newly fetched company list (optional, but good for data integrity)
+                const validSavedRanked = savedRanked.filter(sItem => companiesData.some(cItem => cItem.id === sItem.id));
+                const rankedIds = new Set(validSavedRanked.map((item) => item.id));
+                const calculatedAvailable = companiesData.filter((item) => !rankedIds.has(item.id));
 
+                setRankedItems(validSavedRanked);
+                setAvailableItems(calculatedAvailable);
+            } else {
+                // Fresh session or no valid saved rankings
+                setAvailableItems(companiesData);
+                setRankedItems([]);
+            }
+
+            setIsLoading(false);
+        };
+
+        loadData();
+        // Add user, token, and user.year (if it can change independently of user object) to dependency array
+        // This ensures data is refetched if auth details change.
+    }, [user, token]);
 
     // useEffect for auto-scrolling.
     useEffect(() => {
-
         if (!lastActionType.current) {
             return;
         } // Do nothing if no relevant action occurred
@@ -113,10 +161,7 @@ export const Ranking = () => {
 
         // Reset the action type after we're done.
         lastActionType.current = null;
-
     }, [rankedItems, activeItem]); // Effect runs when the list or activeItem changes
-
-
 
     // useMemo to avoid re-calculating on every render
     const filteredAvailableItems = useMemo(
@@ -138,7 +183,7 @@ export const Ranking = () => {
     const handleDragStart = (event) => {
         // When a drag starts, find the item data and set it as active
         const { active } = event;
-        const item = [...availableItems, ...rankedItems].find(i => i.id === active.id);
+        const item = [...availableItems, ...rankedItems].find((i) => i.id === active.id);
         setActiveItem(item);
     };
 
@@ -154,41 +199,45 @@ export const Ranking = () => {
             return;
         }
         // Check if the active item is already in the target column in our state
-        const isAlreadyInRanked = rankedItems.some(item => item.id === activeId);
+        const isAlreadyInRanked = rankedItems.some((item) => item.id === activeId);
         if (overContainer === 'ranked-column' && isAlreadyInRanked) {
             return;
         }
-        const isAlreadyInAvailable = availableItems.some(item => item.id === activeId);
+        const isAlreadyInAvailable = availableItems.some((item) => item.id === activeId);
         if (overContainer === 'available-column' && isAlreadyInAvailable) {
             return;
         }
 
         // Find the item being dragged
-        const activeIndex = activeContainer === 'available-column'
-            ? availableItems.findIndex(item => item.id === active.id)
-            : rankedItems.findIndex(item => item.id === active.id);
+        const activeIndex =
+            activeContainer === 'available-column'
+                ? availableItems.findIndex((item) => item.id === active.id)
+                : rankedItems.findIndex((item) => item.id === active.id);
 
         let itemToMove;
 
         // Remove from the source array
         if (activeContainer === 'available-column') {
             itemToMove = availableItems[activeIndex];
-            setAvailableItems(prev => prev.filter(item => item.id !== active.id));
+            setAvailableItems((prev) => prev.filter((item) => item.id !== active.id));
         } else {
             itemToMove = rankedItems[activeIndex];
-            setRankedItems(prev => prev.filter(item => item.id !== active.id));
+            setRankedItems((prev) => prev.filter((item) => item.id !== active.id));
         }
 
         // Add to the destination array
         if (overContainer === 'available-column') {
-            setAvailableItems(prev => [...prev, itemToMove]);
+            setAvailableItems((prev) => [...prev, itemToMove]);
         } else {
-            const overIndex = rankedItems.findIndex(item => item.id === over.id);
+            const overIndex = rankedItems.findIndex((item) => item.id === over.id);
             const newIndex = overIndex === -1 ? rankedItems.length : overIndex;
-            setRankedItems(prev => [...prev.slice(0, newIndex), itemToMove, ...prev.slice(newIndex)]);
+            setRankedItems((prev) => [
+                ...prev.slice(0, newIndex),
+                itemToMove,
+                ...prev.slice(newIndex),
+            ]);
         }
     };
-
 
     const handleDragEnd = (event) => {
         const { active, over } = event;
@@ -207,10 +256,9 @@ export const Ranking = () => {
             }
 
             // If an item was dragged from available to ranked, set the action type
-            if(activeContainer === 'available-column' && overContainer === 'ranked-column') {
+            if (activeContainer === 'available-column' && overContainer === 'ranked-column') {
                 lastActionType.current = 'drag-add';
             }
-
         }
         setActiveItem(null);
     };
@@ -218,73 +266,83 @@ export const Ranking = () => {
     const handleMoveCard = (card, sourceContainer) => {
         if (sourceContainer === 'available-column') {
             // Move from Available to Ranked
-            setAvailableItems(prev => prev.filter(item => item.id !== card.id));
-            setRankedItems(prev => [...prev, card]);
+            setAvailableItems((prev) => prev.filter((item) => item.id !== card.id));
+            setRankedItems((prev) => [...prev, card]);
             lastActionType.current = 'click-add';
         } else if (sourceContainer === 'ranked-column') {
             // Move from Ranked to Available
-            setRankedItems(prev => prev.filter(item => item.id !== card.id));
-            setAvailableItems(prev => [card, ...prev]);
+            setRankedItems((prev) => prev.filter((item) => item.id !== card.id));
+            setAvailableItems((prev) => [card, ...prev]);
         }
-    }
+    };
 
     const handleSubmit = () => {
         if (rankedItems.length !== TOTAL_COMPANIES) {
             alert(`Please rank all ${TOTAL_COMPANIES} companies before submitting.`);
             return;
         }
-        const rankedIds = rankedItems.map(item => item.id);
-        console.log("Submitting ranked IDs:", rankedIds);
+        const rankedIds = rankedItems.map((item) => item.id);
+        console.log('Submitting ranked IDs:', rankedIds);
         // TODO: Add your fetch POST/PUT request here to send `rankedIds` to your API
         // e.g., fetch('/api/v1/rankings', { method: 'POST', body: JSON.stringify({ companyIds: rankedIds }) })
         setIsSubmitSuccessAlertOpen(true);
     };
 
     const handleReset = () => {
-
         localStorage.removeItem(RANKED_ITEMS_STORAGE_KEY);
         localStorage.removeItem(AVAILABLE_ITEMS_STORAGE_KEY);
         setRankedItems([]);
         setAvailableItems(mockCompanies);
-
-    }
+    };
 
     if (isLoading) return <div>Loading...</div>;
 
     return (
-        <div className="container mx-auto p-2 md:p-4">
-            <div className="flex flex-col md:flex-row justify-between items-end gap-4 pb-8">
-                <div className="text-center md:text-left ">
-                    <h1 className="text-3xl font-bold">Company Rankings</h1>
-                    <p className="text-muted-foreground pt-1 pb-1">Drag companies from the left to your ranked list on the right. You can reorder your ranked list at any time.</p>
+        <div className='container mx-auto p-2 md:p-4'>
+            <div className='flex flex-col md:flex-row justify-between items-end gap-4 pb-8'>
+                <div className='text-center md:text-left '>
+                    <h1 className='text-3xl font-bold'>Company Rankings</h1>
+                    <p className='text-muted-foreground pt-1 pb-1'>
+                        Drag companies from the left to your ranked list on the right. You can
+                        reorder your ranked list at any time.
+                    </p>
                 </div>
-                <div className="font-semibold text-xl text-green-600 pr-2">
-                    <p>Progress: {rankedItems.length}/{TOTAL_COMPANIES}</p>
+                <div className='font-semibold text-xl text-green-600 pr-2'>
+                    <p>
+                        Progress: {rankedItems.length}/{TOTAL_COMPANIES}
+                    </p>
                 </div>
             </div>
 
-            <DndContext sensors={sensors}
-                        collisionDetection={rectIntersection}
-                        onDragStart={handleDragStart}
-                        onDragOver={handleDragOver}
-                        onDragEnd={handleDragEnd}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <DndContext
+                sensors={sensors}
+                collisionDetection={rectIntersection}
+                onDragStart={handleDragStart}
+                onDragOver={handleDragOver}
+                onDragEnd={handleDragEnd}
+            >
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-8'>
                     {/* Available Companies Column */}
-                    <Column id="available-column" title="Available Companies">
+                    <Column id='available-column' title='Available Companies'>
                         <Input
-                            type="text"
-                            placeholder="Search companies..."
-                            className="mb-4"
+                            type='text'
+                            placeholder='Search companies...'
+                            className='mb-4'
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
-                        <SortableContext id="available-column" items={filteredAvailableItems} strategy={verticalListSortingStrategy}>
-                            <div className="space-y-3 h-[60vh] overflow-y-auto p-2">
-                                {filteredAvailableItems.map(item => (
-                                    <CompanyCard key={item.id}
-                                                 item={item}
-                                                 onCardClick={handleMoveCard}
-                                                 containerId="available-column"
+                        <SortableContext
+                            id='available-column'
+                            items={filteredAvailableItems}
+                            strategy={verticalListSortingStrategy}
+                        >
+                            <div className='space-y-3 h-[60vh] overflow-y-auto p-2'>
+                                {filteredAvailableItems.map((item) => (
+                                    <CompanyCard
+                                        key={item.id}
+                                        item={item}
+                                        onCardClick={handleMoveCard}
+                                        containerId='available-column'
                                     />
                                 ))}
                             </div>
@@ -292,15 +350,23 @@ export const Ranking = () => {
                     </Column>
 
                     {/* Ranked Companies Column */}
-                    <Column id="ranked-column" title="Your Rankings">
-                        <SortableContext id="ranked-column" items={rankedItems} strategy={verticalListSortingStrategy}>
-                            <div ref={rankedColumnRef} className="space-y-3 h-[65vh] overflow-y-auto p-2">
+                    <Column id='ranked-column' title='Your Rankings'>
+                        <SortableContext
+                            id='ranked-column'
+                            items={rankedItems}
+                            strategy={verticalListSortingStrategy}
+                        >
+                            <div
+                                ref={rankedColumnRef}
+                                className='space-y-3 h-[65vh] overflow-y-auto p-2'
+                            >
                                 {rankedItems.map((item, index) => (
-                                    <CompanyCard key={item.id}
-                                                 item={item}
-                                                 index={index + 1}
-                                                 onCardClick={handleMoveCard}
-                                                 containerId="ranked-column"
+                                    <CompanyCard
+                                        key={item.id}
+                                        item={item}
+                                        index={index + 1}
+                                        onCardClick={handleMoveCard}
+                                        containerId='ranked-column'
                                     />
                                 ))}
                             </div>
@@ -309,15 +375,13 @@ export const Ranking = () => {
                 </div>
 
                 {/* The DragOverlay renders a clone of the card while dragging */}
-                <DragOverlay>
-                    {activeItem ? <CompanyCard item={activeItem}/> : null}
-                </DragOverlay>
+                <DragOverlay>{activeItem ? <CompanyCard item={activeItem} /> : null}</DragOverlay>
             </DndContext>
 
-            <div className="flex justify-between items-center mt-8">
+            <div className='flex justify-between items-center mt-8'>
                 <AlertDialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
                     <AlertDialogTrigger asChild>
-                        <Button variant="destructive">Reset Rankings</Button>
+                        <Button variant='destructive'>Reset Rankings</Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                         <AlertDialogHeader>
@@ -329,7 +393,10 @@ export const Ranking = () => {
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={handleReset} className="bg-destructive hover:bg-destructive/90">
+                            <AlertDialogAction
+                                onClick={handleReset}
+                                className='bg-destructive hover:bg-destructive/90'
+                            >
                                 Yes, Reset
                             </AlertDialogAction>
                         </AlertDialogFooter>
@@ -339,9 +406,9 @@ export const Ranking = () => {
                 <AlertDialog open={isSubmitDialogOpen} onOpenChange={setIsSubmitDialogOpen}>
                     <AlertDialogTrigger asChild>
                         <Button
-                            size="lg"
+                            size='lg'
                             disabled={rankedItems.length !== TOTAL_COMPANIES} // Keep disabled logic on trigger
-                            className={"bg-green-600 hover:bg-green-700"}
+                            className={'bg-green-600 hover:bg-green-700'}
                         >
                             Submit Final Rankings
                         </Button>
@@ -356,14 +423,21 @@ export const Ranking = () => {
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction className={"bg-green-600 hover:bg-green-700"} onClick={handleSubmit}>Yes, Submit</AlertDialogAction>
+                            <AlertDialogAction
+                                className={'bg-green-600 hover:bg-green-700'}
+                                onClick={handleSubmit}
+                            >
+                                Yes, Submit
+                            </AlertDialogAction>
                         </AlertDialogFooter>
                     </AlertDialogContent>
                 </AlertDialog>
 
-
                 {/* Dialog for Submission Success Message */}
-                <AlertDialog open={isSubmitSuccessAlertOpen} onOpenChange={setIsSubmitSuccessAlertOpen}>
+                <AlertDialog
+                    open={isSubmitSuccessAlertOpen}
+                    onOpenChange={setIsSubmitSuccessAlertOpen}
+                >
                     <AlertDialogContent>
                         <AlertDialogHeader>
                             <AlertDialogTitle>Rankings Submitted!</AlertDialogTitle>
@@ -372,12 +446,15 @@ export const Ranking = () => {
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                            <AlertDialogAction className={"bg-green-600 hover:bg-green-700"} onClick={() => setIsSubmitSuccessAlertOpen(false)}>OK</AlertDialogAction>
+                            <AlertDialogAction
+                                className={'bg-green-600 hover:bg-green-700'}
+                                onClick={() => setIsSubmitSuccessAlertOpen(false)}
+                            >
+                                OK
+                            </AlertDialogAction>
                         </AlertDialogFooter>
                     </AlertDialogContent>
                 </AlertDialog>
-
-
             </div>
         </div>
     );

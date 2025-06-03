@@ -38,13 +38,13 @@ const defaultContextValue = {
     user: null,
     isLoading: true,
     error: null,
-    // eslint-disable-next-line no-unused-vars
+
     login: async (_email, _password) => {
-        console.error("Login function not provided by AuthProvider");
+        console.error('Login function not provided by AuthProvider');
         throw new Error('Login function not implemented in default context');
     },
     logout: () => {
-        console.error("Logout function not provided by AuthProvider");
+        console.error('Logout function not provided by AuthProvider');
         throw new Error('Logout function not implemented in default context');
     },
     isAuthenticated: false,

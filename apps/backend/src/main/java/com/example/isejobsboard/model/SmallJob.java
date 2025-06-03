@@ -27,7 +27,21 @@ public class SmallJob {
     }
 
     public SmallJob(Long jobId, String jobTitle, String companyName, String smallDescription,
-                    float salary, String residency, Timestamp postDate, int positionCount  ) {
+                    float salary, String residency, Timestamp postDate, int positionCount, String approval ) {
+        this.jobId = jobId;
+        this.jobTitle = jobTitle;
+        this.companyName = companyName;
+        this.smallDescription = smallDescription;
+        this.salary = salary;
+        this.residency = residency;
+        this.postDate = postDate;
+        this.positionCount = positionCount;
+        this.approval = approval;
+
+    }
+
+    public SmallJob(Long jobId, String jobTitle, String companyName, String smallDescription,
+                    float salary, String residency, Timestamp postDate, int positionCount) {
         this.jobId = jobId;
         this.jobTitle = jobTitle;
         this.companyName = companyName;
