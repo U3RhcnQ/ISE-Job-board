@@ -27,6 +27,7 @@ public class InterviewAllocation {
                 default:
                     availableJobs = Job.getJobs(this.residency);
             }
+            System.out.println(availableJobs);
         } catch (SQLException e) {
             e.printStackTrace();
             throw new SQLException();
@@ -45,7 +46,7 @@ public class InterviewAllocation {
                 while(rs.next()){
                     int student_number = rs.getInt("student_number");
                     int rank = rs.getInt("class_rank");
-                    this.studentRanking.add(new Student(student_number,rank, this.availableJobs));//issue  cant just add your going to have to sort or do a hash map
+                    this.studentRanking.add(new Student(student_number, rank, this.availableJobs));
                 }
                 Collections.sort(this.studentRanking);
             }
@@ -58,7 +59,7 @@ public class InterviewAllocation {
         for(Student student: studentRanking) {
             System.out.println(student.studentNumber);
             for(Job job: student.interviews){
-               System.out.println( job.getJobId());
+               System.out.println(job.getJobId());
             }
         }
     }

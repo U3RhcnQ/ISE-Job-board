@@ -5,6 +5,7 @@ import com.example.isejobsboard.Utils.DatabaseUtils;
 import com.example.isejobsboard.Utils.JobUtils;
 import com.example.isejobsboard.controller.schemas.*;
 import com.example.isejobsboard.model.GreetingMessage;
+import com.example.isejobsboard.model.Interview;
 import com.example.isejobsboard.model.SmallJob;
 import com.example.isejobsboard.controller.schemas.Student;
 import com.example.isejobsboard.repository.GreetingMessageRepository;
@@ -21,9 +22,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
-
-import com.example.isejobsboard.controller.schemas.*;
-import com.example.isejobsboard.security.Authenticator;
 
 @RestController
 @RequestMapping("/api/v1")
@@ -1140,45 +1138,97 @@ public class ApiController {
             return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
         }
     }
+    @GetMapping("/get-allocation")
+    public ResponseEntity<Object> getAllocations(@RequestHeader("Authorisation") String authHeader, @RequestParam String residency){
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).body(Map.of("error", "Malformed Authorization header."));
+        }
 
-//    @GetMapping("/get-users")
-//    public  ResponseEntity<Object> getUsers(@RequestHeader("Authorization") String authHeader){
-//        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-//            return ResponseEntity.status(401).body(Map.of("error", "Malformed Authorization header."));
-//        }
-//
-//        String token = authHeader.substring(7);
-//        String sql;
-//        List<Object> userData = new ArrayList<>();
-//
-//        try {
-//            if (Authenticator.isTokenValid(token)) {
-//                //get info associated with rep users
-//                sql = "SELECT u.user_id, u.email, u.first_name, " +
-//                        "u.last_name, r.rep_id, r.company_id, " +
-//                        "c.name AS company_name " +
-//                        "FROM users u " +
-//                        "JOIN rep r ON u.user_id = r.user_id " +
-//                        "JOIN company c ON r.company_id = c.company_id;";
-//                try (Connection connection = DriverManager.getConnection(dbUrl,
-//                        env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
-//                     PreparedStatement statement = connection.prepareStatement(sql)) {
-//                    try (ResultSet rs = statement.executeQuery()) {
-//                        while(rs.next()) {
-//                            userData.add(new RepUser(rs.getLong("user_id"), rs.getString("first_name"), rs.getString("last_name"),
-//                                    rs.getString("email"), rs.getLong("rep_id"), rs.getLong("company_id"), rs.getString("company_name")));
-//                        }
-//                    }
-//                } catch (SQLException e) {
-//                    e.printStackTrace();
-//                    return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
-//                }
-//            } else return ResponseEntity.status(401).body(Map.of("error", "Unauthorized: Invalid or expired token."));
-//
-//        } catch (SQLException e) {
-//            e.printStackTrace();
-//            return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
-//        }
-//    }
+        String token = authHeader.substring(7);
+
+        try {
+            if (!Authenticator.getAccessLevel(token).equals("admin")) {
+                throw new SQLException("not an admin");
+            }
+        } catch (SQLException e) {
+            return ResponseEntity.status(401).body(Map.of("error", "only admins can allocate"));
+        }
+        try{
+          return ResponseEntity.ok(Interview.getInterviews("residency"));
+        }catch (SQLException e){
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
+        }
+
+
+
+
+    }
+
+
+    @GetMapping("/get-users")
+    public  ResponseEntity<Object> getUsers(@RequestHeader("Authorization") String authHeader){
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).body(Map.of("error", "Malformed Authorization header."));
+        }
+
+        String token = authHeader.substring(7);
+        String sql;
+        List<Object> usersDataList = new ArrayList<>();
+
+        try {
+            if (Authenticator.isTokenValid(token)) {
+                //get info associated with rep users
+                sql = "SELECT u.user_id, u.email, u.first_name, " +
+                        "u.last_name, r.rep_id, r.company_id, " +
+                        "c.name AS company_name " +
+                        "FROM users u " +
+                        "JOIN rep r ON u.user_id = r.user_id " +
+                        "JOIN company c ON r.company_id = c.company_id;";
+                try (Connection connection = DriverManager.getConnection(dbUrl,
+                        env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+                     PreparedStatement statement = connection.prepareStatement(sql)) {
+                    try (ResultSet rs = statement.executeQuery()) {
+                        while(rs.next()) {
+                            usersDataList.add(new RepUser(rs.getLong("user_id"), rs.getString("first_name"), rs.getString("last_name"),
+                                    rs.getString("email"), rs.getLong("rep_id"), rs.getLong("company_id"), rs.getString("company_name")));
+                        }
+                    }
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
+                }
+                sql = "SELECT u.user_id, u.email, u.first_name, " +
+                        "u.last_name, s.student_number " +
+                        "FROM users u " +
+                        "JOIN student s ON u.user_id = s.user_id ";
+                try (Connection connection = DriverManager.getConnection(dbUrl,
+                        env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+                     PreparedStatement statement = connection.prepareStatement(sql)) {
+                    try (ResultSet rs = statement.executeQuery()) {
+                        while(rs.next()) {
+                            Map<String, Object> userData = new HashMap<>();
+                            userData.put("userId", rs.getInt("user_id"));
+                            userData.put("firstName", rs.getString("first_name"));
+                            userData.put("lastName", rs.getString("last_name"));
+                            userData.put("email", rs.getString("email"));
+                            userData.put("studentNumber", rs.getInt("student_number"));
+                            usersDataList.add(userData);
+                        }
+                        return ResponseEntity.ok(usersDataList);
+                    }
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
+                }
+
+
+            } else return ResponseEntity.status(401).body(Map.of("error", "Unauthorized: Invalid or expired token."));
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
+        }
+    }
 
 }
