@@ -1287,5 +1287,32 @@ public class ApiController {
             return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
         }
     }
+    @DeleteMapping("/delete-user")
+    public ResponseEntity<Object> deleteUser(@RequestHeader("Authorization") String authHeader, @RequestParam int userId){
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(400).body(Map.of("error", "Malformed Authorization header."));
+        }
+        String token = authHeader.substring(7);
+
+        try {
+            if (Authenticator.getAccessLevel(token).equals("admin")) {
+                String sql = "DELETE FROM users WHERE user_id = ?";
+                try (Connection connection = DriverManager.getConnection(dbUrl,
+                        env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+                     PreparedStatement statement = connection.prepareStatement(sql)) {
+                    statement.setInt(1, userId);
+                    statement.executeUpdate();
+                    return ResponseEntity.ok(Map.of("message", "User deleted"));
+                }
+            } else {
+                return ResponseEntity.status(401).body(Map.of("error", "You are not an admin."));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred during logout."));
+        }
+    }
+
+
 
 }
