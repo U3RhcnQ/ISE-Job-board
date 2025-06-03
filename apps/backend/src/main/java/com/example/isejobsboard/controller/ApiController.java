@@ -777,6 +777,47 @@ public class ApiController {
         }
 
     }
+    @GetMapping("/companies")
+    public ResponseEntity<Object> getCompanies(@RequestHeader("Authorization") String authHeader ) {
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).body(Map.of("error", "Malformed Authorization header."));
+        }
+
+        String token = authHeader.substring(7);
+
+        try {
+            if (Authenticator.isTokenValid(token)) {
+                String query = "SELECT * FROM company ";
+
+
+                try (Connection con = DriverManager.getConnection(dbUrl, env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+                     PreparedStatement statement = con.prepareStatement(query)) {
+
+                    List<Map> companies = new ArrayList<>();
+                    try (ResultSet rs = statement.executeQuery()) {
+                        while (rs.next()) {
+                            Map<String, Object> userData = new HashMap<>();
+
+                            userData.put("company_id", rs.getInt("company_id"));
+                            userData.put("name", rs.getString("name"));
+                            userData.put("champion", rs.getString("champion"));
+                            userData.put("address_id", rs.getInt("address_id"));
+
+                            companies.add(userData);
+                        }
+                        return ResponseEntity.ok(companies);
+                    }
+                }
+            } else {
+                return ResponseEntity.status(401).body(Map.of("error", "Unauthorized: Invalid or expired token."));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
+        }
+
+    }
 
     @PostMapping("/set-preferences")
     public ResponseEntity<Object> setPreferences(@RequestHeader("Authorization") String authHeader, @RequestBody ArrayList<StudentPreference> studentPreferences) {
