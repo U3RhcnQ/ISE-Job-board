@@ -3,25 +3,22 @@ package com.example.isejobsboard.controller;
 import com.example.isejobsboard.Utils.CompanyUtils;
 import com.example.isejobsboard.Utils.DatabaseUtils;
 import com.example.isejobsboard.Utils.JobUtils;
+import com.example.isejobsboard.controller.schemas.*;
 import com.example.isejobsboard.model.GreetingMessage;
 import com.example.isejobsboard.model.SmallJob;
-import com.example.isejobsboard.controller.schemas.Student;
 import com.example.isejobsboard.repository.GreetingMessageRepository;
+import com.example.isejobsboard.security.Authenticator;
 import com.example.isejobsboard.security.SHA256;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.sql.*;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
-
-import com.example.isejobsboard.controller.schemas.*;
-import com.example.isejobsboard.security.Authenticator;
 
 @RestController
 @RequestMapping("/api/v1")
@@ -106,7 +103,7 @@ public class ApiController {
         if (!Authenticator.isTokenValid(token)) {
             return ResponseEntity.status(401).body(Map.of("error", "Invalid Token"));
         }
-        if(!Authenticator.getAccessLevel(token).equals("admin")){
+        if (!Authenticator.getAccessLevel(token).equals("admin")) {
             return ResponseEntity.status(401).body(Map.of("error", "Invalid Access Level"));
         }
 
@@ -132,6 +129,7 @@ public class ApiController {
             return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred during Signup."));
         }
     }
+
     @PostMapping("/logout")
     public ResponseEntity<Object> logout(@RequestHeader("Authorization") String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
@@ -265,63 +263,62 @@ public class ApiController {
     }
 
     /**
-     *
      * @param authHeader
      * @return {@literal ResponseEntity<Object>}
      * <h3> jobs retriever</h3>
      * <p> userd for getting all jobs associated with a given access level</p>
      */
     @GetMapping("/job")
-        public ResponseEntity<Object> getJobInfo(@RequestHeader("Authorization") String authHeader, @RequestParam("job_id") long id){
+    public ResponseEntity<Object> getJobInfo(@RequestHeader("Authorization") String authHeader, @RequestParam("job_id") long id) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {//early return for incorrect auth token
             return ResponseEntity.status(401).body(Map.of("error", "Malformed Authorization header."));
         }
         //gets rid of the Bearer signiture
         String token = authHeader.substring(7);
-        try{
-            if(Authenticator.isTokenValid(token)){
+        try {
+            if (Authenticator.isTokenValid(token)) {
                 //query to validate that the user has access to the job posting
                 String sql = "WITH CurrentUser AS (" +
-                "  SELECT user_id " +
-                "  FROM login_sessions " +
-                "  WHERE token = ? AND expiry > NOW()" +
-                ") " +
-                "SELECT j.job_id " +
-                "FROM job j, CurrentUser cu " +
-                "WHERE j.job_id = ? " +
-                "AND (" +
-                "  EXISTS (" +
-                "    SELECT 1 " +
-                "    FROM admins a " +
-                "    WHERE a.user_id = cu.user_id" +
-                "  ) " +
-                "  OR " +
-                "  EXISTS (" +
-                "    SELECT 1 " +
-                "    FROM rep r " +
-                "    WHERE r.user_id = cu.user_id " +
-                "      AND r.company_id = j.company_id" +
-                "  ) " +
-                "  OR " +
-                "  EXISTS (" +
-                "    SELECT 1 " +
-                "    FROM student s " +
-                "    WHERE s.user_id = cu.user_id " +
-                "      AND (" +
-                "        (s.year = 1 AND j.residency IN ('r1', 'r2', 'r1+r2')) OR " +
-                "        (s.year = 2 AND j.residency = 'r3') OR " +
-                "        (s.year = 3 AND j.residency = 'r4') OR " +
-                "        (s.year = 4 AND j.residency = 'r5')" +
-                 "      )" +
-                "  )" +
-                ");";
+                        "  SELECT user_id " +
+                        "  FROM login_sessions " +
+                        "  WHERE token = ? AND expiry > NOW()" +
+                        ") " +
+                        "SELECT j.job_id " +
+                        "FROM job j, CurrentUser cu " +
+                        "WHERE j.job_id = ? " +
+                        "AND (" +
+                        "  EXISTS (" +
+                        "    SELECT 1 " +
+                        "    FROM admins a " +
+                        "    WHERE a.user_id = cu.user_id" +
+                        "  ) " +
+                        "  OR " +
+                        "  EXISTS (" +
+                        "    SELECT 1 " +
+                        "    FROM rep r " +
+                        "    WHERE r.user_id = cu.user_id " +
+                        "      AND r.company_id = j.company_id" +
+                        "  ) " +
+                        "  OR " +
+                        "  EXISTS (" +
+                        "    SELECT 1 " +
+                        "    FROM student s " +
+                        "    WHERE s.user_id = cu.user_id " +
+                        "      AND (" +
+                        "        (s.year = 1 AND j.residency IN ('r1', 'r2', 'r1+r2')) OR " +
+                        "        (s.year = 2 AND j.residency = 'r3') OR " +
+                        "        (s.year = 3 AND j.residency = 'r4') OR " +
+                        "        (s.year = 4 AND j.residency = 'r5')" +
+                        "      )" +
+                        "  )" +
+                        ");";
                 try (Connection con = DriverManager.getConnection(dbUrl, env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
                      PreparedStatement statement = con.prepareStatement(sql)) {
-                    statement.setString(1,token);
+                    statement.setString(1, token);
                     statement.setLong(2, id);
 
                     try (ResultSet rs = statement.executeQuery()) {
-                         if(!rs.next()) {
+                        if (!rs.next()) {
                             return ResponseEntity.status(404).body(Map.of("error", "Unauthorized: you don't have access to this job"));
                         }
                     }
@@ -356,7 +353,7 @@ public class ApiController {
                             userData.put("salary", rs.getFloat("salary"));
                             userData.put("website", rs.getString("website"));
                             userData.put("residency", rs.getString("residency"));
-                            userData.put("small_description",rs.getString("small_description"));
+                            userData.put("small_description", rs.getString("small_description"));
 
                             return ResponseEntity.ok(userData);
                         } else {
@@ -374,9 +371,8 @@ public class ApiController {
     }
 
 
-
     @GetMapping("/jobs")
-    public ResponseEntity<Object> getJobs(@RequestHeader("Authorization") String authHeader){
+    public ResponseEntity<Object> getJobs(@RequestHeader("Authorization") String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {//early return for incorrect auth token
             return ResponseEntity.status(401).body(Map.of("error", "Malformed Authorization header."));
         }
@@ -385,7 +381,7 @@ public class ApiController {
 
         try {
             if (Authenticator.isTokenValid(token)) {
-                switch (Authenticator.getAccessLevel(token)){//check access level
+                switch (Authenticator.getAccessLevel(token)) {//check access level
                     case "admin":
                         //query for getting all jobs
                         String sql = "SELECT j.job_id, j.job_title, j.approval, " +
@@ -408,14 +404,14 @@ public class ApiController {
                                     //add the job info
                                     SmallJob jobInfo = new SmallJob((long)
 
-                                            rs.getInt("job_id"),rs.getString("job_title"),
-                                            rs.getString("name"),rs.getString("small_description"),
-                                            rs.getFloat("salary"),rs.getString("residency"),
+                                            rs.getInt("job_id"), rs.getString("job_title"),
+                                            rs.getString("name"), rs.getString("small_description"),
+                                            rs.getFloat("salary"), rs.getString("residency"),
                                             rs.getTimestamp("post_date"),
                                             rs.getInt("position_count"),
                                             rs.getString("approval")
-                                            );
-                                    userData.add( jobInfo);
+                                    );
+                                    userData.add(jobInfo);
 
                                 }
                             }
@@ -431,26 +427,26 @@ public class ApiController {
                     case "student":
                         //check yaar of student and only show associated residencies
                         //similar format to admin check comments for reference
-                        switch (Student.getYear(token)){
+                        switch (Student.getYear(token)) {
                             case "1":
-                               sql = "SELECT j.job_title, j.job_id, " +
+                                sql = "SELECT j.job_title, j.job_id, " +
                                         "j.salary, j.small_description, j.residency, c.name, j.post_date, j.position_count " +
                                         "FROM job j " +
                                         "INNER JOIN company c " +
                                         "ON j.company_id = c.company_id " +
                                         "WHERE j.residency = 'r1' OR 'r2' OR 'r1+r2' " +
-                                       "AND j.approval ='approved'";
+                                        "AND j.approval ='approved'";
                                 userData = new ArrayList<>();
                                 try (Connection connection = DriverManager.getConnection(dbUrl,
                                         env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
                                      PreparedStatement statement = connection.prepareStatement(sql)) {
                                     try (ResultSet rs = statement.executeQuery()) {
                                         while (rs.next()) {
-                                            SmallJob jobInfo = new SmallJob((long) rs.getInt("job_id"),rs.getString("job_title"),
-                                                    rs.getString("name"),rs.getString("small_description"),
-                                                    rs.getFloat("salary"),rs.getString("residency"),
-                                                    rs.getTimestamp("post_date"),rs.getInt("position_count"));
-                                            userData.add( jobInfo);
+                                            SmallJob jobInfo = new SmallJob((long) rs.getInt("job_id"), rs.getString("job_title"),
+                                                    rs.getString("name"), rs.getString("small_description"),
+                                                    rs.getFloat("salary"), rs.getString("residency"),
+                                                    rs.getTimestamp("post_date"), rs.getInt("position_count"));
+                                            userData.add(jobInfo);
 
                                         }
 
@@ -478,11 +474,11 @@ public class ApiController {
                                     try (ResultSet rs = statement.executeQuery()) {
                                         while (rs.next()) {
                                             // Token is valid and we found the user
-                                            SmallJob jobInfo = new SmallJob((long) rs.getInt("job_id"),rs.getString("job_title"),
-                                                    rs.getString("name"),rs.getString("small_description"),
-                                                    rs.getFloat("salary"),rs.getString("residency"),
+                                            SmallJob jobInfo = new SmallJob((long) rs.getInt("job_id"), rs.getString("job_title"),
+                                                    rs.getString("name"), rs.getString("small_description"),
+                                                    rs.getFloat("salary"), rs.getString("residency"),
                                                     rs.getTimestamp("post_date"), rs.getInt("position_count"));
-                                            userData.add( jobInfo);
+                                            userData.add(jobInfo);
 
                                         }
                                     }
@@ -508,11 +504,11 @@ public class ApiController {
                                     try (ResultSet rs = statement.executeQuery()) {
                                         while (rs.next()) {
                                             // Token is valid and we found the user
-                                            SmallJob jobInfo = new SmallJob((long) rs.getInt("job_id"),rs.getString("job_title"),
-                                                    rs.getString("name"),rs.getString("small_description"),
-                                                    rs.getFloat("salary"),rs.getString("residency"),
+                                            SmallJob jobInfo = new SmallJob((long) rs.getInt("job_id"), rs.getString("job_title"),
+                                                    rs.getString("name"), rs.getString("small_description"),
+                                                    rs.getFloat("salary"), rs.getString("residency"),
                                                     rs.getTimestamp("post_date"), rs.getInt("position_count"));
-                                            userData.add( jobInfo);
+                                            userData.add(jobInfo);
 
                                         }
                                     }
@@ -538,11 +534,11 @@ public class ApiController {
                                     try (ResultSet rs = statement.executeQuery()) {
                                         while (rs.next()) {
                                             // Token is valid and we found the user
-                                            SmallJob jobInfo = new SmallJob((long) rs.getInt("job_id"),rs.getString("job_title"),
-                                                    rs.getString("name"),rs.getString("small_description"),
-                                                    rs.getFloat("salary"),rs.getString("residency"),
+                                            SmallJob jobInfo = new SmallJob((long) rs.getInt("job_id"), rs.getString("job_title"),
+                                                    rs.getString("name"), rs.getString("small_description"),
+                                                    rs.getFloat("salary"), rs.getString("residency"),
                                                     rs.getTimestamp("post_date"), rs.getInt("position_count"));
-                                            userData.add( jobInfo);
+                                            userData.add(jobInfo);
 
                                         }
                                     }
@@ -576,10 +572,10 @@ public class ApiController {
                             try (ResultSet rs = statement.executeQuery()) {
                                 //adds all the jobs associated with the reps company
                                 while (rs.next()) {
-                                    SmallJob jobInfo = new SmallJob((long) rs.getInt("job_id"),rs.getString("job_title"),
-                                            rs.getString("name"),rs.getString("small_description"),
-                                            rs.getFloat("salary"),rs.getString("residency"),
-                                            rs.getString("approval"),rs.getTimestamp("post_date"),rs.getInt("position_count"));
+                                    SmallJob jobInfo = new SmallJob((long) rs.getInt("job_id"), rs.getString("job_title"),
+                                            rs.getString("name"), rs.getString("small_description"),
+                                            rs.getFloat("salary"), rs.getString("residency"),
+                                            rs.getString("approval"), rs.getTimestamp("post_date"), rs.getInt("position_count"));
                                     userData.add(jobInfo);
 
                                 }
@@ -591,8 +587,7 @@ public class ApiController {
                         }
                         return ResponseEntity.ok(userData);
                 }
-            }
-            else {
+            } else {
                 return ResponseEntity.status(401).body(Map.of("error", "Unauthorized: Invalid or expired token."));
             }
         } catch (SQLException e) {
@@ -622,13 +617,13 @@ public class ApiController {
 
                 String query =
                         "SELECT s.student_number, s.class_rank, s.user_id, s.year, " +
-                        "EXISTS " +
-                        "(SELECT 1 " +
-                        "FROM student_preference sp " +
-                        "WHERE sp.student_number = s.student_number) " +
-                        "AS ranked " +
-                        "FROM student s " +
-                        "WHERE s.user_id = ?";
+                                "EXISTS " +
+                                "(SELECT 1 " +
+                                "FROM student_preference sp " +
+                                "WHERE sp.student_number = s.student_number) " +
+                                "AS ranked " +
+                                "FROM student s " +
+                                "WHERE s.user_id = ?";
 
 
                 try (Connection con = DriverManager.getConnection(dbUrl, env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
@@ -756,7 +751,7 @@ public class ApiController {
     }
 
     @PostMapping("/set-preferences")
-    public ResponseEntity<Object> setPreferences(@RequestHeader("Authorization") String authHeader, @RequestBody ArrayList<StudentPreference> studentPreferences){
+    public ResponseEntity<Object> setPreferences(@RequestHeader("Authorization") String authHeader, @RequestBody ArrayList<StudentPreference> studentPreferences) {
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             return ResponseEntity.status(401).body(Map.of("error", "Malformed Authorization header."));
@@ -766,15 +761,14 @@ public class ApiController {
 
         try {
             if (Authenticator.isTokenValid(token)) {
-                try{
-                StudentPreference.setStudentPreference(studentPreferences, token);
-                return ResponseEntity.status(201).body(Map.of("message", "job preferences sent successfully"));
+                try {
+                    StudentPreference.setStudentPreference(studentPreferences, token);
+                    return ResponseEntity.status(201).body(Map.of("message", "job preferences sent successfully"));
 
                 } catch (SQLException e) {
                     return ResponseEntity.status(404).body(Map.of("error", "job from other year detected or you are not a student "));
                 }
-            }
-            else return ResponseEntity.status(401).body(Map.of("error" ,"Unauthorized: Invalid or expired token."));
+            } else return ResponseEntity.status(401).body(Map.of("error", "Unauthorized: Invalid or expired token."));
 
         } catch (SQLException e) {
             e.printStackTrace();
@@ -932,26 +926,26 @@ public class ApiController {
     }
 
     @GetMapping("jobs-to-rank")
-    public ResponseEntity<Object> jobsToRank (@RequestHeader("Authorization") String authHeader, @RequestParam String residency){
+    public ResponseEntity<Object> jobsToRank(@RequestHeader("Authorization") String authHeader, @RequestParam String residency) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             return ResponseEntity.status(401).body(Map.of("error", "Malformed Authorization header."));
         }
         String token = authHeader.substring(7);//get the token
 
-        try{
-            if (!Authenticator.getAccessLevel(token).equals("student")){//make sure the user is a student
-                return ResponseEntity.status(401).body(Map.of("error","you are not a student"));
+        try {
+            if (!Authenticator.getAccessLevel(token).equals("student")) {//make sure the user is a student
+                return ResponseEntity.status(401).body(Map.of("error", "you are not a student"));
             }
             String year = Student.getYear(token);
             String sql;
             List<JobToRank> userData = new ArrayList<>();
 
-             switch (residency){
+            switch (residency) {
                 case "r1":
-                    if(!year.equals("1")){
+                    if (!year.equals("1")) {
                         return ResponseEntity.status(401).body(Map.of("error", "you don't have access to these residencies"));
                     }
-                    sql ="SELECT j.job_title, j.job_id, " +
+                    sql = "SELECT j.job_title, j.job_id, " +
                             " c.name " +
                             "FROM job j " +
                             "INNER JOIN company c " +
@@ -965,7 +959,7 @@ public class ApiController {
                         try (ResultSet rs = statement.executeQuery()) {
                             //adds all the jobs associated with the residency
                             while (rs.next()) {
-                                JobToRank jobToRank = new JobToRank(rs.getString("job_title"),(long) rs.getInt("job_id"),
+                                JobToRank jobToRank = new JobToRank(rs.getString("job_title"), (long) rs.getInt("job_id"),
                                         rs.getString("name"));
                                 userData.add(jobToRank);
                             }
@@ -977,129 +971,127 @@ public class ApiController {
                     }
                     return ResponseEntity.ok(userData);
                 case "r2":
-                     if(!year.equals("1")){
-                         return ResponseEntity.status(401).body(Map.of("error", "you don't have access to these residencies"));
-                     }
-                     sql ="SELECT j.job_title, j.job_id, " +
-                             " c.name " +
-                             "FROM job j " +
-                             "INNER JOIN company c " +
-                             "ON j.company_id = c.company_id " +
-                             "WHERE j.residency = 'r2' " +
-                             "AND j.approval ='approved'";
+                    if (!year.equals("1")) {
+                        return ResponseEntity.status(401).body(Map.of("error", "you don't have access to these residencies"));
+                    }
+                    sql = "SELECT j.job_title, j.job_id, " +
+                            " c.name " +
+                            "FROM job j " +
+                            "INNER JOIN company c " +
+                            "ON j.company_id = c.company_id " +
+                            "WHERE j.residency = 'r2' " +
+                            "AND j.approval ='approved'";
 
-                     try (Connection connection = DriverManager.getConnection(dbUrl,
-                             env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
-                          PreparedStatement statement = connection.prepareStatement(sql)) {
-                         try (ResultSet rs = statement.executeQuery()) {
-                             //adds all the jobs associated with the residency
-                             while (rs.next()) {
-                                 JobToRank jobToRank = new JobToRank(rs.getString("job_title"),(long) rs.getInt("job_id"),
+                    try (Connection connection = DriverManager.getConnection(dbUrl,
+                            env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+                         PreparedStatement statement = connection.prepareStatement(sql)) {
+                        try (ResultSet rs = statement.executeQuery()) {
+                            //adds all the jobs associated with the residency
+                            while (rs.next()) {
+                                JobToRank jobToRank = new JobToRank(rs.getString("job_title"), (long) rs.getInt("job_id"),
                                         rs.getString("name"));
                                 userData.add(jobToRank);
-                             }
-                         }
+                            }
+                        }
 
-                     } catch (SQLException e) {
-                         e.printStackTrace();
-                         return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
-                     }
-                     return ResponseEntity.ok(userData);
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                        return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
+                    }
+                    return ResponseEntity.ok(userData);
                 case "r3":
-                     if(!year.equals("2")){
-                         return ResponseEntity.status(401).body(Map.of("error", "you don't have access to these residencies"));
-                     }
-                     sql ="SELECT j.job_title, j.job_id, " +
-                             " c.name " +
-                             "FROM job j " +
-                             "INNER JOIN company c " +
-                             "ON j.company_id = c.company_id " +
-                             "WHERE j.residency = 'r3' " +
-                             "AND j.approval ='approved'";
+                    if (!year.equals("2")) {
+                        return ResponseEntity.status(401).body(Map.of("error", "you don't have access to these residencies"));
+                    }
+                    sql = "SELECT j.job_title, j.job_id, " +
+                            " c.name " +
+                            "FROM job j " +
+                            "INNER JOIN company c " +
+                            "ON j.company_id = c.company_id " +
+                            "WHERE j.residency = 'r3' " +
+                            "AND j.approval ='approved'";
 
-                     try (Connection connection = DriverManager.getConnection(dbUrl,
-                             env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
-                          PreparedStatement statement = connection.prepareStatement(sql)) {
-                         try (ResultSet rs = statement.executeQuery()) {
-                             //adds all the jobs associated with the residency
-                             while (rs.next()) {
-                                 JobToRank jobToRank = new JobToRank(rs.getString("job_title"),(long) rs.getInt("job_id"),
-                                         rs.getString("name"));
-                                 userData.add(jobToRank);
-                             }
-                         }
+                    try (Connection connection = DriverManager.getConnection(dbUrl,
+                            env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+                         PreparedStatement statement = connection.prepareStatement(sql)) {
+                        try (ResultSet rs = statement.executeQuery()) {
+                            //adds all the jobs associated with the residency
+                            while (rs.next()) {
+                                JobToRank jobToRank = new JobToRank(rs.getString("job_title"), (long) rs.getInt("job_id"),
+                                        rs.getString("name"));
+                                userData.add(jobToRank);
+                            }
+                        }
 
-                     } catch (SQLException e) {
-                         e.printStackTrace();
-                         return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
-                     }
-                     return ResponseEntity.ok(userData);
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                        return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
+                    }
+                    return ResponseEntity.ok(userData);
                 case "r4":
-                     if(!year.equals("3")){
-                         return ResponseEntity.status(401).body(Map.of("error", "you don't have access to these residencies"));
-                     }
-                     sql ="SELECT j.job_title, j.job_id, " +
-                             " c.name " +
-                             "FROM job j " +
-                             "INNER JOIN company c " +
-                             "ON j.company_id = c.company_id " +
-                             "WHERE j.residency = 'r4' " +
-                             "AND j.approval ='approved'";
+                    if (!year.equals("3")) {
+                        return ResponseEntity.status(401).body(Map.of("error", "you don't have access to these residencies"));
+                    }
+                    sql = "SELECT j.job_title, j.job_id, " +
+                            " c.name " +
+                            "FROM job j " +
+                            "INNER JOIN company c " +
+                            "ON j.company_id = c.company_id " +
+                            "WHERE j.residency = 'r4' " +
+                            "AND j.approval ='approved'";
 
-                     try (Connection connection = DriverManager.getConnection(dbUrl,
-                             env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
-                          PreparedStatement statement = connection.prepareStatement(sql)) {
-                         try (ResultSet rs = statement.executeQuery()) {
-                             //adds all the jobs associated with the residency
-                             while (rs.next()) {
-                                 JobToRank jobToRank = new JobToRank(rs.getString("job_title"),(long) rs.getInt("job_id"),
-                                         rs.getString("name"));
-                                 userData.add(jobToRank);
-                             }
-                         }
+                    try (Connection connection = DriverManager.getConnection(dbUrl,
+                            env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+                         PreparedStatement statement = connection.prepareStatement(sql)) {
+                        try (ResultSet rs = statement.executeQuery()) {
+                            //adds all the jobs associated with the residency
+                            while (rs.next()) {
+                                JobToRank jobToRank = new JobToRank(rs.getString("job_title"), (long) rs.getInt("job_id"),
+                                        rs.getString("name"));
+                                userData.add(jobToRank);
+                            }
+                        }
 
-                     } catch (SQLException e) {
-                         e.printStackTrace();
-                         return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
-                     }
-                     return ResponseEntity.ok(userData);
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                        return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
+                    }
+                    return ResponseEntity.ok(userData);
                 case "r5":
-                     if(!year.equals("4")){
-                         return ResponseEntity.status(401).body(Map.of("error", "you don't have access to these residencies"));
-                     }
-                     sql ="SELECT j.job_title, j.job_id, " +
-                             " c.name " +
-                             "FROM job j " +
-                             "INNER JOIN company c " +
-                             "ON j.company_id = c.company_id " +
-                             "WHERE j.residency = 'r5' " +
-                             "AND j.approval ='approved'";
+                    if (!year.equals("4")) {
+                        return ResponseEntity.status(401).body(Map.of("error", "you don't have access to these residencies"));
+                    }
+                    sql = "SELECT j.job_title, j.job_id, " +
+                            " c.name " +
+                            "FROM job j " +
+                            "INNER JOIN company c " +
+                            "ON j.company_id = c.company_id " +
+                            "WHERE j.residency = 'r5' " +
+                            "AND j.approval ='approved'";
 
-                     try (Connection connection = DriverManager.getConnection(dbUrl,
-                             env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
-                          PreparedStatement statement = connection.prepareStatement(sql)) {
-                         try (ResultSet rs = statement.executeQuery()) {
-                             //adds all the jobs associated with the residency
-                             while (rs.next()) {
-                                 JobToRank jobToRank = new JobToRank(rs.getString("job_title"),(long) rs.getInt("job_id"),
-                                         rs.getString("name"));
-                                 userData.add(jobToRank);
-                             }
-                         }
+                    try (Connection connection = DriverManager.getConnection(dbUrl,
+                            env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+                         PreparedStatement statement = connection.prepareStatement(sql)) {
+                        try (ResultSet rs = statement.executeQuery()) {
+                            //adds all the jobs associated with the residency
+                            while (rs.next()) {
+                                JobToRank jobToRank = new JobToRank(rs.getString("job_title"), (long) rs.getInt("job_id"),
+                                        rs.getString("name"));
+                                userData.add(jobToRank);
+                            }
+                        }
 
-                     } catch (SQLException e) {
-                         e.printStackTrace();
-                         return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
-                     }
-                     return ResponseEntity.ok(userData);
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                        return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
+                    }
+                    return ResponseEntity.ok(userData);
                 default:
-                     return ResponseEntity.status(401).body(Map.of("error", "residency must be enter in e.g r1"));
-             }
+                    return ResponseEntity.status(401).body(Map.of("error", "residency must be enter in e.g r1"));
+            }
 
 
-
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             e.printStackTrace();
             return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
         }
@@ -1107,25 +1099,25 @@ public class ApiController {
     }
 
     @PostMapping("/allocate")
-    public ResponseEntity<Object>test(@RequestHeader("Authorization") String authHeader, @RequestParam String residency){
+    public ResponseEntity<Object> test(@RequestHeader("Authorization") String authHeader, @RequestParam String residency) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             return ResponseEntity.status(401).body(Map.of("error", "Malformed Authorization header."));
         }
 
         String token = authHeader.substring(7);
 
-        try{
-            if(!Authenticator.getAccessLevel(token).equals("admin")){
+        try {
+            if (!Authenticator.getAccessLevel(token).equals("admin")) {
                 throw new SQLException("not an admin");
             }
         } catch (SQLException e) {
             return ResponseEntity.status(401).body(Map.of("error", "only admins can allocate"));
         }
-        try{
-            InterviewAllocation interviewsAllocations = new InterviewAllocation("1","r1");
+        try {
+            InterviewAllocation interviewsAllocations = new InterviewAllocation("1", "r1");
             return ResponseEntity.status(200).body(Map.of("success", "Interviews Allocated successfully"));
 
-        }catch (SQLException e){
+        } catch (SQLException e) {
             e.printStackTrace();
             return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
         }
