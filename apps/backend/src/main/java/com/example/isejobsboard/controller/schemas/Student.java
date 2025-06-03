@@ -5,17 +5,26 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-public class Student implements Comparable<Student>{
+public class Student extends User implements Comparable<Student> {
 
     public int studentNumber;
     public Integer rank;
     public ArrayList<Job> jobPreferences;
     public HashMap<Long, Job> availableJobs;
     public ArrayList<Job> interviews;
+    public String year;
 
     private static final Map<String, String> env = System.getenv();
 
+
+    public Student(Long userId, String firstName, String lastName, String email,int studentNumber, String year) {
+        super(userId, firstName, lastName, email);
+        this.studentNumber = studentNumber;
+        this.year = year;
+    }
+
     public Student(int studentNumber, int rank, HashMap<Long, Job> availableJobs)throws SQLException{
+        super(null,null,null,null);//information not need for interview allocation
         this.studentNumber = studentNumber;
         this.rank = rank;
         this.availableJobs = availableJobs;

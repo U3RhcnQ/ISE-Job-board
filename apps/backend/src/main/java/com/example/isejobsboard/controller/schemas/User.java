@@ -1,8 +1,15 @@
 package com.example.isejobsboard.controller.schemas;
 
-public class User extends Authentication {
+public class User  {
+   public Long userId;
+   public String firstName;
+   public String lastName;
+   public String email;
 
-    public User(String token) {
-        super(token);
+    public User(Long userId, String firstName, String lastName, String email) {
+        this.userId = userId;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.email = email;
     }
 }
