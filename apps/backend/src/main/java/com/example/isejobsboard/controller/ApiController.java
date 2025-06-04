@@ -1240,7 +1240,7 @@ public class ApiController {
                     if(!interviewsAllocations.allPrefSet()){
                     return ResponseEntity.status(401).body(Map.of("error", "all students haven't ranked there preferences"));
                 }
-                interviewsAllocations.allocate();
+                    interviewsAllocations.allocate();
                     break;
                 case "r3":
                     interviewsAllocations = new InterviewAllocation("2", "r3");
