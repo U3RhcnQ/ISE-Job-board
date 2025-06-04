@@ -1,95 +1,245 @@
+// src/App.jsx
 import React, { useState } from 'react';
-import { Routes, Route, Link } from 'react-router-dom';
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
+import { Button } from './components/ui/button';
+import { Menu, X, LogOut, Briefcase, BarChart2, InfoIcon as InfoPageIcon } from 'lucide-react'; // Renamed InfoIcon
+import loadingSpinner from "./components/loadingSpinner.jsx";
+import { useAuth } from './hooks/useAuth.js';
+import { AuthProvider } from './context/AuthContext';
 
-// Import icons for the mobile menu and user avatar
-import { Menu, X, UserCircle } from 'lucide-react';
-
-// Import your page components
-import Info from './pages/Info'; // Assuming you will create this page
+// Page Components
 import Login from './pages/Login';
 import Jobs from './pages/Jobs';
+import JobDetailPage from './pages/JobDetailPage';
+import Ranking from './pages/Ranking';
+import Company from './pages/Company';
+import AdminDashboard from "./pages/AdminDashboard.jsx";
+import ResidencyInfo  from "./pages/ResidencyInfo";
 
-// Placeholder pages for the new links
-const Ranking = () => <h1 className="text-3xl font-bold">Ranking Page</h1>;
-const ResidencyInfo = () => <h1 className="text-3xl font-bold">Residency Information Page</h1>;
+// ProtectedRoute HOC
+const ProtectedRoute = ({ children, allowedRoles }) => {
+    const { user, isAuthenticated, isLoading } = useAuth();
+    const location = useLocation();
 
+    if (isLoading) {
+        return loadingSpinner({text: 'Loading...'});
+    }
 
-function App() {
+    if (!isAuthenticated) {
+        return <Navigate to='/login' state={{ from: location }} replace />;
+    }
+
+    if (allowedRoles && !allowedRoles.includes(user?.access_level)) {
+        // return <Navigate to="/unauthorised" replace />;
+        return (
+            <Navigate to='/' state={{ message: 'You do not have access to this page' }} replace />
+        );
+    }
+
+    return children;
+};
+
+function AppLayout() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const { user, logout, isAuthenticated } = useAuth();
+    const location = useLocation(); // To close menu on navigation
+
+    const commonLinkClasses =
+        'w-full rounded-md p-2 text-left hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none';
+    const commonButtonClasses = 'justify-start';
+
+    // Close menu on navigation
+    React.useEffect(() => {
+        setIsMenuOpen(false);
+    }, [location]);
 
     return (
-        <div className="min-h-screen bg-gray-50 text-foreground">
-            {/* The header container gives padding to the floating navbar */}
-            <header className="sticky top-0 z-50 w-full p-2 md:p-4">
-                {/* The visible "floating" navbar with shadow and rounded corners, but no border */}
-                <div className="container mx-auto flex h-16 items-center justify-between rounded-full bg-background/80 px-4 shadow-md backdrop-blur supports-[backdrop-filter]:bg-background/60 md:px-6">
+        <div className='min-h-screen bg-gray-100 dark:bg-slate-900 text-foreground'>
+            {isAuthenticated && ( // Only show header if authenticated
+                <header className='sticky top-0 z-50 w-full p-2 md:p-4'>
+                    <div className='container mx-auto flex h-16 items-center justify-between rounded-full px-4 shadow-md md:px-6 bg-white'>
+                        <Link to='/jobs' className='flex items-center gap-2'>
+                            <span className='text-xl font-black text-primary hidden sm:inline'>
+                                [ISE]
+                            </span>
+                        </Link>
 
-                    {/* Left Side: Logo */}
-                    <Link to="/jobs" className="flex items-center gap-2">
-                        <span className="text-2xl font-black">[ISE]</span>
-                    </Link>
-
-                    {/* Center: Desktop Navigation */}
-                    <nav className="hidden md:flex gap-1">
-                        <Button asChild variant="ghost">
-                            <Link to="/jobs">Jobs Board</Link>
-                        </Button>
-                        <Button asChild variant="ghost">
-                            <Link to="/ranking">Ranking</Link>
-                        </Button>
-                        <Button asChild variant="ghost">
-                            <Link to="/info">Residency Information</Link>
-                        </Button>
-                    </nav>
-
-                    {/* Right Side: My Account Button */}
-                    <div className="hidden md:flex ">
-                        <Button className={"bg-green-600 hover:bg-green-700 text-white"}>
-                            <UserCircle className="mr-2 h-5 w-5" />
-                            My Account
-                        </Button>
-                    </div>
-
-                    {/* Mobile Menu Button */}
-                    <div className="md:hidden">
-                        <Button onClick={() => setIsMenuOpen(!isMenuOpen)} variant="ghost" size="icon">
-                            {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-                        </Button>
-                    </div>
-                </div>
-
-                {/* Mobile Menu */}
-                {isMenuOpen && (
-                    <div className="md:hidden mt-2 rounded-lg border bg-background p-4 shadow-lg">
-                        <nav className="flex flex-col items-start gap-2">
-                            <Link to="/jobs" onClick={() => setIsMenuOpen(false)} className="w-full rounded-md p-2 text-left hover:bg-accent">Jobs Board</Link>
-                            <Link to="/ranking" onClick={() => setIsMenuOpen(false)} className="w-full rounded-md p-2 text-left hover:bg-accent">Ranking</Link>
-                            <Link to="/info" onClick={() => setIsMenuOpen(false)} className="w-full rounded-md p-2 text-left hover:bg-accent">Residency Information</Link>
-                            <div className="w-full border-t pt-4 mt-2">
-                                <Button className="w-full bg-green-600 hover:bg-green-700 text-white">
-                                    <UserCircle className="mr-2 h-5 w-5" />
-                                    My Account
-                                </Button>
-                            </div>
+                        <nav className='hidden md:flex items-center gap-1'>
+                            {user?.access_level === 'student' && (
+                                <>
+                                    <Button asChild variant='ghost' className={commonButtonClasses}>
+                                        <Link to='/jobs'>Jobs Board</Link>
+                                    </Button>
+                                    <Button asChild variant='ghost' className={commonButtonClasses}>
+                                        <Link to='/ranking'>Ranking</Link>
+                                    </Button>
+                                    <Button asChild variant='ghost' className={commonButtonClasses}>
+                                        <Link to='/info'>Residency Info</Link>
+                                    </Button>
+                                </>
+                            )}
+                            {user?.access_level === 'rep' && (
+                                <>
+                                    <Button asChild variant='ghost' className={commonButtonClasses}>
+                                        <Link to='/jobs'>Jobs Board</Link>
+                                    </Button>
+                                    <Button asChild variant='ghost' className={commonButtonClasses}>
+                                        <Link to='/company'>Your company</Link>
+                                    </Button>
+                                </>
+                            )}
+                            {user?.access_level === 'admin' && (
+                                <>
+                                    <Button asChild variant='ghost' className={commonButtonClasses}>
+                                        <Link to='/jobs'>Jobs Board</Link>
+                                    </Button>
+                                    <Button asChild variant='ghost' className={commonButtonClasses}>
+                                        <Link to='/admin-dashboard'>Admin Dashboard</Link>
+                                    </Button>
+                                    <Button asChild variant='ghost' className={commonButtonClasses}>
+                                        <Link to='/info'>Residency Info</Link>
+                                    </Button>
+                                </>
+                            )}
                         </nav>
-                    </div>
-                )}
-            </header>
 
-            {/* Page Content */}
-            <main className="w-full max-w-7xl mx-auto p-2 md:p-4">
+                        <div className='hidden md:flex items-center gap-3'>
+                            <Button variant='outline' size='sm' onClick={logout}>
+                                <LogOut className='mr-2 h-4 w-4' /> Logout
+                            </Button>
+                        </div>
+
+                        <div className='md:hidden'>
+                            <Button
+                                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                                variant='ghost'
+                                size='icon'
+                            >
+                                {isMenuOpen ? (
+                                    <X className='h-6 w-6' />
+                                ) : (
+                                    <Menu className='h-6 w-6' />
+                                )}
+                            </Button>
+                        </div>
+                    </div>
+
+                    {isMenuOpen && (
+                        <div className='md:hidden absolute top-full left-0 right-0 mx-2 mt-2 rounded-lg border bg-background p-4 shadow-lg'>
+                            <nav className='flex flex-col items-start gap-2'>
+                                <Link to='/jobs' className={commonLinkClasses}>
+                                    <Briefcase className='inline mr-2 h-4 w-4' />
+                                    Jobs Board
+                                </Link>
+                                <Link to='/ranking' className={commonLinkClasses}>
+                                    <BarChart2 className='inline mr-2 h-4 w-4' />
+                                    Ranking
+                                </Link>
+                                <Link to='/info' className={commonLinkClasses}>
+                                    <InfoPageIcon className='inline mr-2 h-4 w-4' />
+                                    Residency Info
+                                </Link>
+                                <div className='w-full border-t border-border pt-3 mt-3'>
+                                    {user && (
+                                        <div className='px-2 py-1.5 text-sm font-semibold text-muted-foreground'>
+                                            Hi, {user.first_name}
+                                        </div>
+                                    )}
+                                    <Button
+                                        className={`w-full ${commonButtonClasses}`}
+                                        variant='ghost'
+                                        onClick={logout}
+                                    >
+                                        <LogOut className='mr-2 h-4 w-4' /> Logout
+                                    </Button>
+                                </div>
+                            </nav>
+                        </div>
+                    )}
+                </header>
+            )}
+
+            <main className='p-4 pt-4 md:p-8 md:pt-4'>
                 <Routes>
-                    {/* The root path "/" should probably go to the login or jobs page */}
-                    <Route path="/" element={<Login />} />
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/jobs" element={<Jobs />} />
-                    <Route path="/ranking" element={<Ranking />} />
-                    <Route path="/info" element={<ResidencyInfo />} />
+                    <Route path='/login' element={<Login />} />
+                    <Route
+                        path='/jobs'
+                        element={
+                            <ProtectedRoute allowedRoles={['student', 'rep', 'admin']}>
+                                <Jobs />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path='/ranking'
+                        element={
+                            <ProtectedRoute allowedRoles={['student']}>
+                                <Ranking />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path='/info'
+                        element={
+                            <ProtectedRoute allowedRoles={['student', 'admin']}>
+                                <ResidencyInfo />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path='/job/:jobId'
+                        element={
+                            <ProtectedRoute allowedRoles={['rep', 'admin']}>
+                                <JobDetailPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path='/company'
+                        element={
+                            <ProtectedRoute allowedRoles={['rep', 'admin']}>
+                                <Company />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path='/company/:companyId'
+                        element={
+                            <ProtectedRoute allowedRoles={['rep', 'admin']}>
+                                <Company />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path='/admin-dashboard'
+                        element={
+                            <ProtectedRoute allowedRoles={['admin']}>
+                                <AdminDashboard />
+                            </ProtectedRoute>
+                        }
+                    />
+                    {/*Custom home depending on access level*/}
+                    <Route
+                        path='/'
+                        element={
+                            <ProtectedRoute>
+                                {user?.access_level === 'student' && <Jobs />}
+                                {user?.access_level === 'rep' && <Company />}
+                                {user?.access_level === 'admin' && <Jobs />}
+                            </ProtectedRoute>
+                        }
+                    />
                 </Routes>
             </main>
         </div>
+    );
+}
+
+function App() {
+    return (
+        <AuthProvider>
+            <AppLayout />
+        </AuthProvider>
     );
 }
 

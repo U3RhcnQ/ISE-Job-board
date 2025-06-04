@@ -1,6 +1,7 @@
-# Frontend  
+# Frontend
 
-## Introduction  
+## Introduction
+
 In this folder you will find all files relating to the frontend (visual) side of the codebase. This is where the view gets updated and managed along with other visual tasks.
 
 # React + Vite
