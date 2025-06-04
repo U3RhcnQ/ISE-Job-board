@@ -159,12 +159,12 @@ public class ApiController {
     }
     @PutMapping("/update-company")
     public ResponseEntity<Object> addCompany(@RequestBody Company company, @RequestHeader("Authorization") String authHeader, @RequestParam int companyId) throws SQLException {
-        //  Validate the Authorization header format ("Bearer <token>")
+        // 1. Validate the Authorization header format ("Bearer <token>")
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             return ResponseEntity.status(400).body(Map.of("error", "Malformed Authorization header."));
         }
 
-        //  Extract the token from the header
+        // 2. Extract the token from the header
         String token = authHeader.substring(7); // "Bearer " is 7 characters
 
         if (!Authenticator.isTokenValid(token)) {
@@ -191,8 +191,8 @@ public class ApiController {
 
             userStatement.executeUpdate();
 
-            // SUCCESS: Company was updated. Return 204 Created.
-            return ResponseEntity.status(204).body(Map.of("message", "Company updated successfully"));
+            // SUCCESS: Company was updated. Return 201 Created.
+            return ResponseEntity.status(201).body(Map.of("message", "Company updated successfully"));
 
         } catch (SQLException e) {
             e.printStackTrace();
