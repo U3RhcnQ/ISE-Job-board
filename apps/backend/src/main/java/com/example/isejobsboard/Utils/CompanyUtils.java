@@ -14,8 +14,8 @@ public class CompanyUtils {
 
         String query =
                 "SELECT c.* " +
-                "FROM jobs_board.company c " +
-                "INNER JOIN jobs_board.rep r ON c.company_id = r.Company_id " +
+                "FROM company c " +
+                "INNER JOIN  rep r ON c.company_id = r.Company_id " +
                 "WHERE r.user_id = ?;";
 
         try (Connection con = DriverManager.getConnection(DatabaseUtils.url, DatabaseUtils.env.get("MYSQL_USER_NAME"), DatabaseUtils.env.get("MYSQL_USER_PASSWORD"));
@@ -47,7 +47,7 @@ public class CompanyUtils {
     }
 
     public static boolean hasJob(int companyId, int jobId) {
-        String query = "SELECT 1 FROM jobs_board.job WHERE company_id = ? AND job_id = ?;";
+        String query = "SELECT 1 FROM job WHERE company_id = ? AND job_id = ?;";
 
         try (Connection con = DriverManager.getConnection(DatabaseUtils.url, DatabaseUtils.env.get("MYSQL_USER_NAME"), DatabaseUtils.env.get("MYSQL_USER_PASSWORD"));
         PreparedStatement statement = con.prepareStatement(query)) {

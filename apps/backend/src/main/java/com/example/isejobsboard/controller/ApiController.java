@@ -939,7 +939,7 @@ public class ApiController {
 
         String token = authHeader.substring(7);
 
-        String query = "UPDATE jobs_board.job " +
+        String query = "UPDATE job " +
                 "SET " +
                 "position_count = COALESCE(?, position_count), " +
                 "description = COALESCE(?, description), " +
@@ -1000,7 +1000,7 @@ public class ApiController {
 
         String token = authHeader.substring(7);
 
-        String query = "DELETE FROM jobs_board.job WHERE job_id = ?";
+        String query = "DELETE FROM job WHERE job_id = ?";
 
         try {
             if (Authenticator.isTokenValid(token)) {
