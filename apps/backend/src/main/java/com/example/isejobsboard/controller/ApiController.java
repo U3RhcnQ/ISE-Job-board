@@ -192,7 +192,7 @@ public class ApiController {
             userStatement.executeUpdate();
 
             // SUCCESS: Company was updated. Return 201 Created.
-            return ResponseEntity.status(204).body(Map.of("message", "Company updated successfully"));
+            return ResponseEntity.status(201).body(Map.of("message", "Company updated successfully"));
 
         } catch (SQLException e) {
             e.printStackTrace();
