@@ -27,9 +27,9 @@ import java.util.regex.Pattern;
 @RequestMapping("/api/v1")
 public class ApiController {
 
-    private static final Map<String, String> env = System.getenv();
+    private static final Map<String, String> env = DatabaseUtils.env;
 
-    private final String dbUrl = "jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board";
+    private final String dbUrl = DatabaseUtils.url;
 
     private final GreetingMessageRepository greetingMessageRepository;
 
