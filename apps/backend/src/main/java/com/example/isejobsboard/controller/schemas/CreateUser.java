@@ -9,7 +9,7 @@ public class CreateUser {
     public String password;
 
     // Student stuff
-    public String studentNumber;
+    public int studentNumber;
     public int classRank;
     public int year;
 

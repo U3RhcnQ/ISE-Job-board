@@ -40,12 +40,6 @@ public class CompanyUtils {
         return company;
     }
 
-    public static Company getCompanyInfoFromCompanyId(int companyId) {
-        Company company = new Company();
-
-        return company;
-    }
-
     public static boolean hasJob(int companyId, int jobId) {
         String query = "SELECT 1 FROM job WHERE company_id = ? AND job_id = ?;";
 

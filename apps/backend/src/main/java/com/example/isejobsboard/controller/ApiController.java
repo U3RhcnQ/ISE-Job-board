@@ -14,6 +14,7 @@ import com.example.isejobsboard.security.SHA256;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.example.isejobsboard.Utils.UserUtils;
 
 import java.sql.*;
 
@@ -1424,5 +1425,40 @@ public class ApiController {
         }
     }
 
+    @PostMapping("/create-user")
+    public ResponseEntity<Object> createUser(@RequestHeader("Authorization") String authHeader, @RequestBody CreateUser user) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(400).body(Map.of("error", "Malformed Authorization header."));
+        }
 
+        String token = authHeader.substring(7);
+
+        String dynamic_salt = user.email;
+        String static_salt = "892225800";
+        user.password = SHA256.hash(dynamic_salt + user.password + static_salt);
+
+        try {
+            if (Authenticator.isTokenValid(token)) {
+                if (Authenticator.getAccessLevel(token).equals("admin")) {
+                    switch (user.userType) {
+                        case "student":
+                            return UserUtils.addStudent(user);
+                        case "rep":
+                            return UserUtils.addRep(user);
+                        case "admin":
+                            return UserUtils.addAdmin(user);
+                        default:
+                            return ResponseEntity.status(400).body(Map.of("error", "Invalid user type."));
+                    }
+                } else {
+                    return ResponseEntity.status(401).body(Map.of("error", "You are not an admin."));
+                }
+            } else {
+                return ResponseEntity.status(401).body(Map.of("error", "Invalid token."));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
+        }
+    }
 }
