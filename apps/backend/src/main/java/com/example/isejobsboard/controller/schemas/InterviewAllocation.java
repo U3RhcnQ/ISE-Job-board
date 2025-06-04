@@ -108,6 +108,7 @@ public class InterviewAllocation {
         try (Connection connection = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
                 env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
              PreparedStatement statement = connection.prepareStatement(sql)) {
+           dealocate();
             //safely set the statement
             statement.setString(1, year);
             statement.setString(2,residency);
@@ -122,6 +123,27 @@ public class InterviewAllocation {
             e.printStackTrace();
             throw new SQLException();
         }
+    }
+
+    public void dealocate() throws SQLException {
+        String sql = "DELETE ap " +
+                "FROM interview_allocation ap " +
+                "INNER JOIN job j ON ap.job_id = j.job_id " +
+                "WHERE j.residency = ? ";
+        //automatic resource allocation
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
+                env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            //safely set the statement
+            statement.setString(1, residency);
+            statement.executeUpdate();
+            //if a query fails or connection fails
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw new SQLException();
+        }
+
+
     }
 
 }
