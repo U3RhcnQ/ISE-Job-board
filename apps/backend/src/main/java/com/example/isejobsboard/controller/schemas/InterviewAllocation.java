@@ -55,7 +55,6 @@ public class InterviewAllocation {
             e.printStackTrace();
             throw new SQLException();
         }
-        allocate();
 //        for(Student student: studentRanking) {
 //            System.out.println(student.studentNumber);
 //            for(Job job: student.interviews){
@@ -88,15 +87,41 @@ public class InterviewAllocation {
                     statement.executeUpdate();
                 }
             }
-            //safely set the statement
-            statement.setString(1, year);
-
             //if a query fails or connection fails
         } catch (SQLException e) {
             e.printStackTrace();
             throw new SQLException();
         }
 
+    }
+    public boolean allPrefSet()throws SQLException{
+        String sql = "SELECT s.student_number " +
+             "FROM student s " +
+             "WHERE s.year = ? " +
+             "AND s.student_number NOT IN (" +
+             "SELECT sp.student_number " +
+             "FROM student_preference sp " +
+             "JOIN job j ON sp.job_id = j.job_id " +
+             "WHERE j.residency = ?" +
+             ")";
+        //automatic resource allocation
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
+                env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            //safely set the statement
+            statement.setString(1, year);
+            statement.setString(2,residency);
+            try(ResultSet rs = statement.executeQuery()){
+                if (rs.next()){//if there is a entry
+                    return false;
+                }
+                else return true;
+            }
+            //if a query fails or connection fails
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw new SQLException();
+        }
     }
 
 }

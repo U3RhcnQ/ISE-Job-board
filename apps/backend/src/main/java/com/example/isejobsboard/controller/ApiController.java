@@ -1229,18 +1229,38 @@ public class ApiController {
             switch(residency){
                 case "r1":
                     interviewsAllocations = new InterviewAllocation("1", "r1");
+                    if(!interviewsAllocations.allPrefSet()){
+                        return ResponseEntity.status(401).body(Map.of("error", "all students haven't ranked there preferences"));
+                    }
+                    interviewsAllocations.allocate();
                     break;
                 case "r2":
                     interviewsAllocations = new InterviewAllocation("1", "r2");
+                    if(!interviewsAllocations.allPrefSet()){
+                    return ResponseEntity.status(401).body(Map.of("error", "all students haven't ranked there preferences"));
+                }
+                interviewsAllocations.allocate();
                     break;
                 case "r3":
                     interviewsAllocations = new InterviewAllocation("2", "r3");
+                    if(!interviewsAllocations.allPrefSet()){
+                        return ResponseEntity.status(401).body(Map.of("error", "all students haven't ranked there preferences"));
+                    }
+                    interviewsAllocations.allocate();
                     break;
                 case "r4":
                     interviewsAllocations = new InterviewAllocation("3", "r4");
+                    if(!interviewsAllocations.allPrefSet()){
+                        return ResponseEntity.status(401).body(Map.of("error", "all students haven't ranked there preferences"));
+                    }
+                    interviewsAllocations.allocate();
                     break;
                 case "r5":
                     interviewsAllocations = new InterviewAllocation("4", "r5");
+                    if(!interviewsAllocations.allPrefSet()){
+                        return ResponseEntity.status(401).body(Map.of("error", "all students haven't ranked there preferences"));
+                    }
+                    interviewsAllocations.allocate();
 
             }
             return ResponseEntity.status(200).body(Map.of("success", "Interviews Allocated successfully"));
