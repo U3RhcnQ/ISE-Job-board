@@ -222,6 +222,7 @@ public class ApiController {
         }
     }
 
+    /*
     @PostMapping("/signup")
     public ResponseEntity<Object> signup(@RequestBody UserSignup user) {
 
@@ -257,6 +258,7 @@ public class ApiController {
             return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred during Signup."));
         }
     }
+     */
 
     @GetMapping("/profile")
     public ResponseEntity<Object> getUserProfile(@RequestHeader("Authorization") String authHeader) throws SQLException {
