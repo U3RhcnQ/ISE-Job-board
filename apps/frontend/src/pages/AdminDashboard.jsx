@@ -65,6 +65,7 @@ const studentColumns = [
     { header: 'Student #', accessor: 'studentNumber' },
     { header: 'Class Rank', accessor: 'classRank' },
     { header: 'User ID', accessor: 'userId' },
+    { header: 'Ranked', accessor: 'isRanked' },
 ];
 
 const repColumns = [
@@ -89,14 +90,11 @@ const companyColumns = [
     { header: 'Name', accessor: 'name' },
     { header: 'Address ID', accessor: 'address_id' },
     { header: 'Champion', accessor: 'champion' },
-    // Assuming 'website' is part of the Company model for update/create, though not in the GET response sample
-    // { header: 'Website', accessor: 'website' },
 ];
 
-const RESIDENCY_LEVELS = ['R1', 'R2', 'R3', 'R4', 'R5']; // Kept from original, if still needed
-
+const RESIDENCY_LEVELS = ['r1', 'r2', 'r3', 'r4', 'r5'];
 export const AdminDashboard = () => {
-    const { token } = useAuth(); // adminUser removed as it's not used in this modified scope
+    const { token } = useAuth();
     const [activeTab, setActiveTab] = useState(USER_TYPES.STUDENTS);
     const [userData, setUserData] = useState({
         [USER_TYPES.STUDENTS]: [],
@@ -219,7 +217,7 @@ export const AdminDashboard = () => {
         setIsDeleteDialogOpen(true);
     };
 
-    // Placeholder for edit functionality (kept from original)
+    // Placeholder for edit functionality
     const handleEditUser = (user) => {
         // setUserToEdit(user);
         const userName = user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.email;
@@ -227,7 +225,7 @@ export const AdminDashboard = () => {
         console.log("Edit user:", user);
     };
 
-    // Ranking process (kept from original)
+    // Ranking process
     const handleRunRankingProcess = async () => {
         if (!token) {
             toast.error("Authentication token not found.");

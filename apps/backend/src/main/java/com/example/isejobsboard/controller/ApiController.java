@@ -1360,10 +1360,11 @@ public class ApiController {
                             return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
                         }
                     case "students":
-                        sql = "SELECT u.user_id, u.email, u.first_name, " +
-                                "u.last_name, s.student_number, s.year, s.class_rank " +
+                        sql = "SELECT u.user_id, u.email, u.first_name, u.last_name, " +
+                                "s.student_number, s.year, s.class_rank, " +
+                                "EXISTS (SELECT 1 FROM student_preference sp WHERE sp.student_number = s.student_number) AS is_ranked " +
                                 "FROM users u " +
-                                "JOIN student s ON u.user_id = s.user_id ";
+                                "JOIN student s ON u.user_id = s.user_id";
                         try (Connection connection = DriverManager.getConnection(dbUrl,
                                 env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
                              PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -1377,6 +1378,7 @@ public class ApiController {
                                     userData.put("studentNumber", rs.getInt("student_number"));
                                     userData.put("year", rs.getString("year"));
                                     userData.put("classRank",rs.getInt("class_rank"));
+                                    userData.put("isRanked", rs.getBoolean("is_ranked"));
                                     usersDataList.add(userData);
                                 }
                                 return ResponseEntity.ok(usersDataList);
