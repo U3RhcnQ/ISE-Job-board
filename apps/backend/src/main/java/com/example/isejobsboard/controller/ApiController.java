@@ -1261,6 +1261,8 @@ public class ApiController {
                         return ResponseEntity.status(401).body(Map.of("error", "all students haven't ranked there preferences"));
                     }
                     interviewsAllocations.allocate();
+                default:
+                    return ResponseEntity.status(401).body(Map.of("error", "please enter the residency correctly"));
 
             }
             return ResponseEntity.status(200).body(Map.of("success", "Interviews Allocated successfully"));
