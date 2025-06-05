@@ -1,5 +1,7 @@
 package com.example.isejobsboard.controller.schemas;
 
+import com.example.isejobsboard.Utils.DatabaseUtils;
+
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Map;
@@ -9,6 +11,7 @@ public class StudentPreference {
     public int preference;
 
     private static final Map<String, String> env = System.getenv();
+    private static final String dbUrl = DatabaseUtils.url;
     public StudentPreference(int jobId, int preference){
         this.jobId = jobId;
         this.preference = preference;
@@ -51,7 +54,7 @@ public class StudentPreference {
                 break;
         }
 
-        try (Connection connection = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
+        try (Connection connection = DriverManager.getConnection(dbUrl,
                 env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
              PreparedStatement statement = connection.prepareStatement(insert_sql)) {
             for(StudentPreference studentPreference: studentPreferences){

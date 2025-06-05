@@ -1,5 +1,7 @@
 package com.example.isejobsboard.controller.schemas;
 
+import com.example.isejobsboard.Utils.DatabaseUtils;
+
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -15,6 +17,7 @@ public class Student extends User implements Comparable<Student> {
     public String year;
 
     private static final Map<String, String> env = System.getenv();
+    private static final String dbUrl = DatabaseUtils.url;
 
 
     public Student(Long userId, String firstName, String lastName, String email,int studentNumber, String year) {
@@ -41,7 +44,7 @@ public class Student extends User implements Comparable<Student> {
                 "WHERE ls.token = ? AND ls.expiry > NOW()";
 
 
-        try (Connection connection = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
+        try (Connection connection = DriverManager.getConnection(dbUrl,
                 env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
              PreparedStatement statement = connection.prepareStatement(sql)) {
 
@@ -68,7 +71,7 @@ public class Student extends User implements Comparable<Student> {
                 "JOIN login_sessions ls ON s.user_id = ls.user_id " +
                 "WHERE ls.token = ? AND ls.expiry > NOW()";
 
-        try (Connection connection = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
+        try (Connection connection = DriverManager.getConnection(dbUrl,
                 env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
              PreparedStatement statement = connection.prepareStatement(sql)) {
 
@@ -100,7 +103,7 @@ public class Student extends User implements Comparable<Student> {
                 "FROM student_preference " +
                 "WHERE student_number = ? " +
                 "ORDER BY preference ASC");
-        try (Connection connection = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
+        try (Connection connection = DriverManager.getConnection(dbUrl,
                 env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
              PreparedStatement statement = connection.prepareStatement(sql)) {
 

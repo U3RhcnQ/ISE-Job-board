@@ -1,5 +1,6 @@
 package com.example.isejobsboard.model;
 
+import com.example.isejobsboard.Utils.DatabaseUtils;
 import org.springframework.http.ResponseEntity;
 
 import java.sql.*;
@@ -15,7 +16,7 @@ public class Interview {
     public String jobTitle;
 
     private static final Map<String, String> env = System.getenv();
-    private final String dbUrl = "jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board";
+    private static final String dbUrl = DatabaseUtils.url;
 
     public Interview(Long studentNumber, String studentFirstName, String studentLastName, Long jobId, String jobTitle) {
         this.studentNumber = studentNumber;
@@ -60,7 +61,7 @@ public class Interview {
         // You'll need to establish a database connection and execute this query.
         // This example assumes you have a 'connection' object available.
 
-        try (Connection connection = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
+        try (Connection connection = DriverManager.getConnection(dbUrl,
                 env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
              PreparedStatement statement = connection.prepareStatement(sql)) {
             try (ResultSet resultSet = statement.executeQuery()) {

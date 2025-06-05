@@ -1,6 +1,7 @@
 package com.example.isejobsboard.security;
 
 import com.example.isejobsboard.ResultSetPrinter;
+import com.example.isejobsboard.Utils.DatabaseUtils;
 import org.springframework.http.ResponseEntity;
 
 import java.security.SecureRandom;
@@ -11,6 +12,7 @@ import java.util.Map;
 
 public class Authenticator {
     private static final Map<String, String> env = System.getenv();
+    private static final String dbUrl = DatabaseUtils.url;
 
     /**
      * Creates a session token for a user in the database.
@@ -25,7 +27,7 @@ public class Authenticator {
         String query = "INSERT INTO login_sessions (user_id, token, expiry) VALUES (?, ?, ?)";
 
         // Inserting our token into the database
-        try (Connection con = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board", env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+        try (Connection con = DriverManager.getConnection(dbUrl, env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
              PreparedStatement statement = con.prepareStatement(query)) {
 
             statement.setInt(1, userId);
@@ -48,7 +50,7 @@ public class Authenticator {
     public static void destroyToken(String token) throws SQLException {
         // Connecting to the database table
         Connection tokenConnection = DriverManager.getConnection(
-                "jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
+                dbUrl,
                 env.get("MYSQL_USER_NAME"),
                 env.get("MYSQL_USER_PASSWORD")
         );
@@ -76,7 +78,7 @@ public class Authenticator {
     public static boolean isTokenValid(String token) throws SQLException {
         String query = "SELECT * FROM login_sessions WHERE token = ?";
 
-        try (Connection con = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board", env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+        try (Connection con = DriverManager.getConnection(dbUrl, env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
         PreparedStatement statement = con.prepareStatement(query)) {
 
             statement.setString(1, token);
@@ -99,7 +101,7 @@ public class Authenticator {
 
     public static int getUserIdFromToken(String token) throws SQLException {
         // Assume token is validated when called, we're all reasonable people here
-        try (Connection con = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board", env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+        try (Connection con = DriverManager.getConnection(dbUrl, env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
              PreparedStatement statement = con.prepareStatement("SELECT user_id FROM login_sessions WHERE token = ?");) {
 
             statement.setString(1, token);
@@ -135,7 +137,7 @@ public class Authenticator {
             throw new SQLException("Invalid token");
         }
 
-        try (Connection connection = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
+        try (Connection connection = DriverManager.getConnection(dbUrl,
                 env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
              PreparedStatement statement = connection.prepareStatement(query)) {
 
