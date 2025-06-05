@@ -43,6 +43,8 @@ public class SecurityConfig {
         // This is your React frontend's origin (adjust if your dev port is different)
         configuration.addAllowedOriginPattern("http://localhost:*");
         configuration.addAllowedOriginPattern("http://127.0.0.1:*");
+        configuration.addAllowedOriginPattern("https://isejobsboard.petr.ie");
+        configuration.addAllowedOriginPattern("http://isejobsboard.petr.ie");
         // Allow common HTTP methods. OPTIONS is crucial for preflight requests.
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         // Allow all headers requested by the client. For production, you might want to be more specific.
