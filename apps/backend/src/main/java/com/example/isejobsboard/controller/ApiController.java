@@ -14,6 +14,7 @@ import com.example.isejobsboard.security.SHA256;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.example.isejobsboard.Utils.UserUtils;
 
 import java.sql.*;
 
@@ -27,9 +28,9 @@ import java.util.regex.Pattern;
 @RequestMapping("/api/v1")
 public class ApiController {
 
-    private static final Map<String, String> env = System.getenv();
+    private static final Map<String, String> env = DatabaseUtils.env;
 
-    private final String dbUrl = "jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board";
+    private final String dbUrl = DatabaseUtils.url;
 
     private final GreetingMessageRepository greetingMessageRepository;
 
@@ -221,6 +222,7 @@ public class ApiController {
         }
     }
 
+    /*
     @PostMapping("/signup")
     public ResponseEntity<Object> signup(@RequestBody UserSignup user) {
 
@@ -256,6 +258,7 @@ public class ApiController {
             return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred during Signup."));
         }
     }
+     */
 
     @GetMapping("/profile")
     public ResponseEntity<Object> getUserProfile(@RequestHeader("Authorization") String authHeader) throws SQLException {
@@ -939,7 +942,7 @@ public class ApiController {
 
         String token = authHeader.substring(7);
 
-        String query = "UPDATE jobs_board.job " +
+        String query = "UPDATE job " +
                 "SET " +
                 "position_count = COALESCE(?, position_count), " +
                 "description = COALESCE(?, description), " +
@@ -1000,7 +1003,7 @@ public class ApiController {
 
         String token = authHeader.substring(7);
 
-        String query = "DELETE FROM jobs_board.job WHERE job_id = ?";
+        String query = "DELETE FROM job WHERE job_id = ?";
 
         try {
             if (Authenticator.isTokenValid(token)) {
@@ -1229,14 +1232,40 @@ public class ApiController {
             switch(residency){
                 case "r1":
                     interviewsAllocations = new InterviewAllocation("1", "r1");
+                    if(!interviewsAllocations.allPrefSet()){
+                        return ResponseEntity.status(401).body(Map.of("error", "all students haven't ranked there preferences"));
+                    }
+                    interviewsAllocations.allocate();
+                    break;
                 case "r2":
                     interviewsAllocations = new InterviewAllocation("1", "r2");
+                    if(!interviewsAllocations.allPrefSet()){
+                    return ResponseEntity.status(401).body(Map.of("error", "all students haven't ranked there preferences"));
+                }
+                    interviewsAllocations.allocate();
+                    break;
                 case "r3":
                     interviewsAllocations = new InterviewAllocation("2", "r3");
+                    if(!interviewsAllocations.allPrefSet()){
+                        return ResponseEntity.status(401).body(Map.of("error", "all students haven't ranked there preferences"));
+                    }
+                    interviewsAllocations.allocate();
+                    break;
                 case "r4":
                     interviewsAllocations = new InterviewAllocation("3", "r4");
+                    if(!interviewsAllocations.allPrefSet()){
+                        return ResponseEntity.status(401).body(Map.of("error", "all students haven't ranked there preferences"));
+                    }
+                    interviewsAllocations.allocate();
+                    break;
                 case "r5":
                     interviewsAllocations = new InterviewAllocation("4", "r5");
+                    if(!interviewsAllocations.allPrefSet()){
+                        return ResponseEntity.status(401).body(Map.of("error", "all students haven't ranked there preferences"));
+                    }
+                    interviewsAllocations.allocate();
+                default:
+                    return ResponseEntity.status(401).body(Map.of("error", "please enter the residency correctly"));
 
             }
             return ResponseEntity.status(200).body(Map.of("success", "Interviews Allocated successfully"));
@@ -1246,8 +1275,8 @@ public class ApiController {
             return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
         }
     }
-    @GetMapping("/get-allocation")
-    public ResponseEntity<Object> getAllocations(@RequestHeader("Authorisation") String authHeader, @RequestParam String residency){
+    @GetMapping("/get-allocations")
+    public ResponseEntity<Object> getAllocations(@RequestHeader("Authorization") String authHeader, @RequestParam String residency){
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             return ResponseEntity.status(401).body(Map.of("error", "Malformed Authorization header."));
         }
@@ -1262,7 +1291,7 @@ public class ApiController {
             return ResponseEntity.status(401).body(Map.of("error", "only admins can allocate"));
         }
         try{
-          return ResponseEntity.ok(Interview.getInterviews("residency"));
+          return ResponseEntity.ok(Interview.getInterviews(residency));
         }catch (SQLException e){
             e.printStackTrace();
             return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
@@ -1334,10 +1363,11 @@ public class ApiController {
                             return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
                         }
                     case "students":
-                        sql = "SELECT u.user_id, u.email, u.first_name, " +
-                                "u.last_name, s.student_number, s.year, s.class_rank " +
+                        sql = "SELECT u.user_id, u.email, u.first_name, u.last_name, " +
+                                "s.student_number, s.year, s.class_rank, " +
+                                "EXISTS (SELECT 1 FROM student_preference sp WHERE sp.student_number = s.student_number) AS is_ranked " +
                                 "FROM users u " +
-                                "JOIN student s ON u.user_id = s.user_id ";
+                                "JOIN student s ON u.user_id = s.user_id";
                         try (Connection connection = DriverManager.getConnection(dbUrl,
                                 env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
                              PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -1351,6 +1381,7 @@ public class ApiController {
                                     userData.put("studentNumber", rs.getInt("student_number"));
                                     userData.put("year", rs.getString("year"));
                                     userData.put("classRank",rs.getInt("class_rank"));
+                                    userData.put("isRanked", rs.getBoolean("is_ranked"));
                                     usersDataList.add(userData);
                                 }
                                 return ResponseEntity.ok(usersDataList);
@@ -1396,6 +1427,40 @@ public class ApiController {
         }
     }
 
+    @PostMapping("/create-user")
+    public ResponseEntity<Object> createUser(@RequestHeader("Authorization") String authHeader, @RequestBody CreateUser user) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(400).body(Map.of("error", "Malformed Authorization header."));
+        }
 
+        String token = authHeader.substring(7);
 
+        String dynamic_salt = user.email;
+        String static_salt = "892225800";
+        user.password = SHA256.hash(dynamic_salt + user.password + static_salt);
+
+        try {
+            if (Authenticator.isTokenValid(token)) {
+                if (Authenticator.getAccessLevel(token).equals("admin")) {
+                    switch (user.userType) {
+                        case "student":
+                            return UserUtils.addStudent(user);
+                        case "rep":
+                            return UserUtils.addRep(user);
+                        case "admin":
+                            return UserUtils.addAdmin(user);
+                        default:
+                            return ResponseEntity.status(400).body(Map.of("error", "Invalid user type."));
+                    }
+                } else {
+                    return ResponseEntity.status(401).body(Map.of("error", "You are not an admin."));
+                }
+            } else {
+                return ResponseEntity.status(401).body(Map.of("error", "Invalid token."));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of("error", "An internal server error occurred."));
+        }
+    }
 }

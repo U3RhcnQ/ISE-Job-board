@@ -55,13 +55,12 @@ public class InterviewAllocation {
             e.printStackTrace();
             throw new SQLException();
         }
-        allocate();
-        for(Student student: studentRanking) {
-            System.out.println(student.studentNumber);
-            for(Job job: student.interviews){
-               System.out.println(job.getJobId());
-            }
-        }
+//        for(Student student: studentRanking) {
+//            System.out.println(student.studentNumber);
+//            for(Job job: student.interviews){
+//               System.out.println(job.getJobId());
+//            }
+//        }
     }
     public void allocate()throws SQLException{
         for(Student student : this.studentRanking){
@@ -88,14 +87,62 @@ public class InterviewAllocation {
                     statement.executeUpdate();
                 }
             }
-            //safely set the statement
-            statement.setString(1, year);
-
             //if a query fails or connection fails
         } catch (SQLException e) {
             e.printStackTrace();
             throw new SQLException();
         }
+
+    }
+    public boolean allPrefSet()throws SQLException{
+        String sql = "SELECT s.student_number " +
+             "FROM student s " +
+             "WHERE s.year = ? " +
+             "AND s.student_number NOT IN (" +
+             "SELECT sp.student_number " +
+             "FROM student_preference sp " +
+             "JOIN job j ON sp.job_id = j.job_id " +
+             "WHERE j.residency = ?" +
+             ")";
+        //automatic resource allocation
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
+                env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+           dealocate();
+            //safely set the statement
+            statement.setString(1, year);
+            statement.setString(2,residency);
+            try(ResultSet rs = statement.executeQuery()){
+                if (rs.next()){//if there is a entry
+                    return false;
+                }
+                else return true;
+            }
+            //if a query fails or connection fails
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw new SQLException();
+        }
+    }
+
+    public void dealocate() throws SQLException {
+        String sql = "DELETE ap " +
+                "FROM interview_allocation ap " +
+                "INNER JOIN job j ON ap.job_id = j.job_id " +
+                "WHERE j.residency = ? ";
+        //automatic resource allocation
+        try (Connection connection = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
+                env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            //safely set the statement
+            statement.setString(1, residency);
+            statement.executeUpdate();
+            //if a query fails or connection fails
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw new SQLException();
+        }
+
 
     }
 

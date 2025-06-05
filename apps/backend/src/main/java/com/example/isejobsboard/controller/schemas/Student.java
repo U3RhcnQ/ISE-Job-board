@@ -109,7 +109,6 @@ public class Student extends User implements Comparable<Student> {
             try (ResultSet rs = statement.executeQuery()) {//execute query
                //for  every result set the preference of each job and making references to the common job pool
                 while (rs.next()) {
-                    System.out.println(availableJobs.get(rs.getLong("job_id")));
                     this.jobPreferences.add(availableJobs.get(rs.getLong("job_id")));
                 }
             }

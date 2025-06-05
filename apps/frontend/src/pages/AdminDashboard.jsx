@@ -27,8 +27,8 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-} from '../components/ui/alert-dialog'; // AlertDialogTrigger removed as we open dialog programmatically
-import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs'; // Added Tabs
+} from '../components/ui/alert-dialog';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { toast } from 'sonner';
 import LoadingSpinner from '../components/loadingSpinner.jsx';
 import {
@@ -65,6 +65,7 @@ const studentColumns = [
     { header: 'Student #', accessor: 'studentNumber' },
     { header: 'Class Rank', accessor: 'classRank' },
     { header: 'User ID', accessor: 'userId' },
+    { header: 'Ranked', accessor: 'isRanked' },
 ];
 
 const repColumns = [
@@ -89,14 +90,21 @@ const companyColumns = [
     { header: 'Name', accessor: 'name' },
     { header: 'Address ID', accessor: 'address_id' },
     { header: 'Champion', accessor: 'champion' },
-    // Assuming 'website' is part of the Company model for update/create, though not in the GET response sample
-    // { header: 'Website', accessor: 'website' },
 ];
 
-const RESIDENCY_LEVELS = ['R1', 'R2', 'R3', 'R4', 'R5']; // Kept from original, if still needed
+const RESIDENCY_LEVELS = ['r1', 'r2', 'r3', 'r4', 'r5'];
+
+// New columns for the rankings dialog
+const allocationColumns = [
+    { header: 'Student Number', accessor: 'studentNumber' },
+    { header: 'First Name', accessor: 'studentFirstName' },
+    { header: 'Last Name', accessor: 'studentLastName' },
+    { header: 'Job ID', accessor: 'jobId' },
+    { header: 'Job Title', accessor: 'jobTitle' },
+];
 
 export const AdminDashboard = () => {
-    const { token } = useAuth(); // adminUser removed as it's not used in this modified scope
+    const { token } = useAuth();
     const [activeTab, setActiveTab] = useState(USER_TYPES.STUDENTS);
     const [userData, setUserData] = useState({
         [USER_TYPES.STUDENTS]: [],
@@ -109,7 +117,6 @@ export const AdminDashboard = () => {
     // Dialog states
     const [userToDelete, setUserToDelete] = useState(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-    // const [userToEdit, setUserToEdit] = useState(null); // Kept for potential edit functionality
 
     // States for Ranking Process (kept from original)
     const [selectedResidency, setSelectedResidency] = useState(RESIDENCY_LEVELS[0]);
@@ -127,10 +134,15 @@ export const AdminDashboard = () => {
     const [currentCompany, setCurrentCompany] = useState({
         company_id: null,
         name: '',
-        website: '', // Assuming website is a field for add/update
+        website: '',
         champion: '',
     });
     const [isEditMode, setIsEditMode] = useState(false);
+
+    // New states for rankings dialog
+    const [showRankingsDialog, setShowRankingsDialog] = useState(false);
+    const [rankingsData, setRankingsData] = useState([]);
+    const [isLoadingRankings, setIsLoadingRankings] = useState(false);
 
     // Fetch users based on active tab
     useEffect(() => {
@@ -219,15 +231,14 @@ export const AdminDashboard = () => {
         setIsDeleteDialogOpen(true);
     };
 
-    // Placeholder for edit functionality (kept from original)
+    // Placeholder for edit functionality
     const handleEditUser = (user) => {
-        // setUserToEdit(user);
         const userName = user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.email;
         toast.info(`Editing user: ${userName} (ID: ${user.userId}). Implement edit modal/form.`);
         console.log("Edit user:", user);
     };
 
-    // Ranking process (kept from original)
+    // Ranking process
     const handleRunRankingProcess = async () => {
         if (!token) {
             toast.error("Authentication token not found.");
@@ -236,7 +247,6 @@ export const AdminDashboard = () => {
         setIsAllocating(true);
         toast.info(`Starting allocation for ${selectedResidency}...`);
         try {
-            // Ensure this endpoint is correct as per your API
             const response = await fetch(`${API_BASE_URL}/allocate?residency=${selectedResidency}`, {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${token}` },
@@ -256,6 +266,35 @@ export const AdminDashboard = () => {
         }
     };
 
+    // Handle getting rankings
+    const handleGetRankings = async () => {
+        if (!token) {
+            toast.error("Authentication token not found.");
+            return;
+        }
+        setIsLoadingRankings(true);
+        setRankingsData([]); // Clear previous data
+        setShowRankingsDialog(true); // Open dialog immediately with loading spinner
+        toast.info("Fetching rankings...");
+        try {
+            const response = await fetch(`${API_BASE_URL}/get-allocations?residency=${selectedResidency}`, { // Assuming residency parameter is needed
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ message: 'Failed to fetch rankings' }));
+                throw new Error(errorData.message || `HTTP error ${response.status}`);
+            }
+            const data = await response.json();
+            setRankingsData(Array.isArray(data) ? data : []);
+            toast.success("Rankings fetched successfully!");
+        } catch (error) {
+            console.error('Fetch rankings error:', error);
+            toast.error(`Error fetching rankings: ${error.message}`);
+            setRankingsData([]); // Ensure data is cleared on error
+        } finally {
+            setIsLoadingRankings(false);
+        }
+    };
 
     // Fetch companies
     useEffect(() => {
@@ -309,7 +348,7 @@ export const AdminDashboard = () => {
         setCurrentCompany({
             company_id: company.company_id,
             name: company.name,
-            website: company.website || '', // Populate website if exists, otherwise empty
+            website: company.website || '',
             champion: company.champion,
         });
         setIsAddEditDialogOpen(true);
@@ -434,6 +473,13 @@ export const AdminDashboard = () => {
                     >
                         {isAllocating ? 'Allocating...' : `Run for ${selectedResidency}`}
                     </Button>
+                    <Button
+                        onClick={handleGetRankings}
+                        disabled={isLoadingRankings}
+                        className="w-full sm:w-auto bg-green-600 hover:bg-green-700"
+                    >
+                        {isLoadingRankings ? 'Loading Rankings...' : 'Get Rankings'}
+                    </Button>
                 </div>
                 {isAllocating && <p className="text-sm text-muted-foreground mt-2">Allocation process is running...</p>}
             </div>
@@ -461,7 +507,6 @@ export const AdminDashboard = () => {
                         onChange={(e) => setUserSearchTerm(e.target.value)}
                         className="flex-grow"
                     />
-                    {/* Role filter removed, tabs handle user types. Add back if specific sub-filtering is needed */}
                 </div>
 
                 {isLoadingUsers ? (
@@ -490,7 +535,7 @@ export const AdminDashboard = () => {
                                                 <Button
                                                     variant="outline"
                                                     size="sm"
-                                                    onClick={() => handleEditUser(user)} // Ensure handleEditUser is adapted if used
+                                                    onClick={() => handleEditUser(user)}
                                                 >
                                                     Edit
                                                 </Button>
@@ -588,7 +633,7 @@ export const AdminDashboard = () => {
                 )}
             </div>
 
-            {/* Delete Confirmation Dialog */}
+            {/* Delete Confirmation Dialog for Users */}
             <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
@@ -670,7 +715,7 @@ export const AdminDashboard = () => {
                 </DialogContent>
             </Dialog>
 
-            {/* Delete Confirmation Dialog */}
+            {/* Delete Confirmation Dialog for Companies */}
             <AlertDialog open={isCompanyDeleteDialogOpen} onOpenChange={setIsCompanyDeleteDialogOpen}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
@@ -695,6 +740,58 @@ export const AdminDashboard = () => {
                 </AlertDialogContent>
             </AlertDialog>
 
+            {/* Rankings Display Dialog */}
+            <Dialog open={showRankingsDialog} onOpenChange={setShowRankingsDialog}>
+                <DialogContent className='w-[95vw] max-w-[95vw] md:w-[80vw] md:max-w-[80vw] lg:w-[70vw] lg:max-w-[70vw] h-[90vh] flex flex-col'>
+                    <DialogHeader className='m-6 mb-2'>
+                        <DialogTitle className='text-2xl'>
+                            Allocation Rankings for {selectedResidency}
+                        </DialogTitle>
+                        <DialogDescription>
+                            Here are the current student job allocations based on the last ranking run for the selected residency level.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className='flex-grow overflow-y-auto p-6 pt-0'>
+                        {isLoadingRankings ? (
+                            <LoadingSpinner text="Loading Rankings..." />
+                        ) : (
+                            <ScrollArea className="h-auto w-full border rounded-md">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            {allocationColumns.map(col => <TableHead key={col.accessor}>{col.header}</TableHead>)}
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {rankingsData.length > 0 ? (
+                                            rankingsData.map((ranking, index) => (
+                                                <TableRow key={index}>
+                                                    {allocationColumns.map(col => (
+                                                        <TableCell key={col.accessor} className="font-medium">
+                                                            {ranking[col.accessor] !== null && ranking[col.accessor] !== undefined
+                                                                ? String(ranking[col.accessor])
+                                                                : 'N/A'}
+                                                        </TableCell>
+                                                    ))}
+                                                </TableRow>
+                                            ))
+                                        ) : (
+                                            <TableRow>
+                                                <TableCell colSpan={allocationColumns.length} className="text-center">
+                                                    No rankings found for {selectedResidency}. Run the ranking process first.
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </ScrollArea>
+                        )}
+                    </div>
+                    <DialogFooter className='mt-auto pt-4 pb-4 pr-6 flex justify-end space-x-2'>
+                        <Button className={'bg-green-600 hover:bg-green-700'} onClick={() => setShowRankingsDialog(false)}>Close</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };
