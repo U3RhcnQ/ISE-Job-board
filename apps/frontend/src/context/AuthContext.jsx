@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { AuthContext } from './authDefinition';
 import { useLocation } from 'react-router-dom';
 
-const API_BASE_URL = 'http://localhost:8080/api/v1';
+const API_BASE_URL = '/api/v1';
 
 export const AuthProvider = ({ children }) => {
     const [token, setToken] = useState(localStorage.getItem('authToken'));

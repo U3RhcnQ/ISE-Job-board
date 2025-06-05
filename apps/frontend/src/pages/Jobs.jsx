@@ -13,7 +13,7 @@ import { Dialog } from "../components/ui/dialog";
 import JobDetailsModal from "../components/JobDetailsModal";
 import JobActionCard from "../components/JobActionCard";
 
-const API_BASE_URL = "http://localhost:8080/api/v1";
+const API_BASE_URL = "/api/v1";
 
 
 const JobCard = ({ id, company, title, salary, description, tags, positionCount, user, onViewDetailsRequest, approval }) => {
