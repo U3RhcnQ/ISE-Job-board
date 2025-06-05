@@ -532,13 +532,13 @@ export const AdminDashboard = () => {
                                                 </TableCell>
                                             ))}
                                             <TableCell className="space-x-2">
-                                                <Button
+                                            {/* <Button
                                                     variant="outline"
                                                     size="sm"
                                                     onClick={() => handleEditUser(user)}
                                                 >
                                                     Edit
-                                                </Button>
+                                                </Button>*/}
                                                 <Button
                                                     variant="destructive"
                                                     size="sm"
