@@ -2,6 +2,7 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '3.4.5'
 	id 'io.spring.dependency-management' version '1.1.7'
+	id "org.sonarqube" version '6.2.0.5505'
 }
 
 group = 'com.example'
@@ -10,6 +11,14 @@ version = '0.0.1-SNAPSHOT'
 java {
 	toolchain {
 		languageVersion = JavaLanguageVersion.of(21)
+	}
+}
+
+sonar {
+	properties {
+		property "sonar.projectKey", "U3RhcnQ_ISE-Job-board"
+		property "sonar.organization", "u3rhcnq"
+		property "sonar.host.url", "https://sonarcloud.io"
 	}
 }
 
@@ -35,6 +44,8 @@ dependencies {
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	implementation 'com.mysql:mysql-connector-j:9.3.0'
+	testImplementation 'org.mockito:mockito-inline:5.2.0'
+	testImplementation "org.junit.jupiter:junit-jupiter:5.9.3"
 }
 
 tasks.named('test') {
