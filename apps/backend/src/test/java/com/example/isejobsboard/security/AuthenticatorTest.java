@@ -12,7 +12,7 @@ import static org.mockito.Mockito.*;
 class AuthenticatorTest {
 
     @Test
-    void testCreateToken_success() throws Exception {
+    void testCreateTokenInsertsTokenAndReturnsToken() throws Exception {
         Connection mockConnection = mock(Connection.class);
         PreparedStatement mockStatement = mock(PreparedStatement.class);
         when(mockConnection.prepareStatement(anyString())).thenReturn(mockStatement);
@@ -32,7 +32,7 @@ class AuthenticatorTest {
     }
 
     @Test
-    void testCreateToken_error() {
+    void testCreateTokenThrowsRuntimeExceptionOnSQLException() {
         SQLException ex = new SQLException("DB error");
         try (MockedStatic<DriverManager> dm = mockStatic(DriverManager.class)) {
             dm.when(() -> DriverManager.getConnection(any(), any(), any()))
@@ -47,7 +47,7 @@ class AuthenticatorTest {
     }
 
     @Test
-    void testDestroyToken_success() throws Exception {
+    void testDestroyTokenDeletesToken() throws Exception {
         Connection mockConnection = mock(Connection.class);
         PreparedStatement mockStatement = mock(PreparedStatement.class);
         when(mockConnection.prepareStatement(anyString())).thenReturn(mockStatement);
@@ -64,7 +64,7 @@ class AuthenticatorTest {
     }
 
     @Test
-    void testDestroyToken_error() {
+    void testDestroyTokenThrowsSQLException() {
         SQLException ex = new SQLException("DB error");
         try (MockedStatic<DriverManager> dm = mockStatic(DriverManager.class)) {
             dm.when(() -> DriverManager.getConnection(any(), any(), any()))
@@ -79,7 +79,7 @@ class AuthenticatorTest {
     }
 
     @Test
-    void testIsTokenValidReturnsTrue_success() throws Exception {
+    void testIsTokenValidReturnsTrueIfTokenIsValid() throws Exception {
         Connection mockConnection = mock(Connection.class);
         PreparedStatement mockStatement = mock(PreparedStatement.class);
         ResultSet mockResultSet = mock(ResultSet.class);
