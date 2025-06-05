@@ -34,7 +34,7 @@ import { Label } from '../components/ui/label';
 import { toast } from 'sonner';
 import LoadingSpinner from '../components/loadingSpinner.jsx';
 
-const API_BASE_URL = 'http://localhost:8080/api/v1';
+const API_BASE_URL = '/api/v1';
 
 const companyColumns = [
     { header: 'Company ID', accessor: 'company_id' },

@@ -8,7 +8,7 @@ import { Button } from '../components/ui/button'; // For potential actions or ba
 import { AlertCircle, CheckCircle2, Building, UserCheck, Globe } from 'lucide-react'; // Added more icons
 import loadingSpinner from '../components/loadingSpinner.jsx';
 
-const API_BASE_URL = 'http://localhost:8080/api/v1';
+const API_BASE_URL = '/api/v1';
 
 // Helper component for displaying label-value pairs
 const InfoItem = ({ label, icon, children }) => (
