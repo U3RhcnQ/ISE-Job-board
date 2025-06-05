@@ -1,5 +1,7 @@
 package com.example.isejobsboard.controller.schemas;
 
+import com.example.isejobsboard.Utils.DatabaseUtils;
+
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -8,6 +10,7 @@ import java.util.Map;
 
 public class InterviewAllocation {
     private static final Map<String, String> env = System.getenv();
+    private static final String dbUrl = DatabaseUtils.url;
     private ArrayList<Student> studentRanking;
     private final String year;
     private HashMap<Long,Job> availableJobs;
@@ -37,7 +40,7 @@ public class InterviewAllocation {
                 "WHERE year = ?";
 
         //automatic resource allocation
-        try (Connection connection = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
+        try (Connection connection = DriverManager.getConnection(dbUrl,
                 env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
              PreparedStatement statement = connection.prepareStatement(sql)) {
             //safely set the statement
@@ -77,7 +80,7 @@ public class InterviewAllocation {
         String sql = "INSERT INTO interview_allocation " +
                 "(student_number, job_id) VALUES (?, ?)";
         //automatic resource allocation
-        try (Connection connection = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
+        try (Connection connection = DriverManager.getConnection(dbUrl,
                 env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
              PreparedStatement statement = connection.prepareStatement(sql)) {
             for(Student student: this.studentRanking){
@@ -105,7 +108,7 @@ public class InterviewAllocation {
              "WHERE j.residency = ?" +
              ")";
         //automatic resource allocation
-        try (Connection connection = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
+        try (Connection connection = DriverManager.getConnection(dbUrl,
                 env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
              PreparedStatement statement = connection.prepareStatement(sql)) {
            dealocate();
@@ -131,7 +134,7 @@ public class InterviewAllocation {
                 "INNER JOIN job j ON ap.job_id = j.job_id " +
                 "WHERE j.residency = ? ";
         //automatic resource allocation
-        try (Connection connection = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
+        try (Connection connection = DriverManager.getConnection(dbUrl,
                 env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
              PreparedStatement statement = connection.prepareStatement(sql)) {
             //safely set the statement

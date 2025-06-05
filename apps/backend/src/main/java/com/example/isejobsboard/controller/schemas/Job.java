@@ -1,5 +1,7 @@
 package com.example.isejobsboard.controller.schemas;
 
+import com.example.isejobsboard.Utils.DatabaseUtils;
+
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,6 +28,7 @@ public class Job {
     private String salary;
     public ArrayList<Student> interviews;
     private static final Map<String, String> env = System.getenv();
+    private static final String dbUrl = DatabaseUtils.url;
 
     public Job(Long jobId, Long companyId,
                int positionCount, String description,
@@ -102,7 +105,7 @@ public class Job {
                 "small_description, residency, "+
                 "residency_title, address_id)"+
                 "VALUES (?,?,?,?,?,?,?,?,?)";
-        try (Connection connection = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
+        try (Connection connection = DriverManager.getConnection(dbUrl,
                 env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
              PreparedStatement statement = connection.prepareStatement(sql)) {
 
@@ -129,7 +132,7 @@ public class Job {
                 "salary = ?, small_description, " +
                 "residency = ?, residency_title = ?" +
                 "WHERE job_id = ?;";
-        try (Connection connection = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
+        try (Connection connection = DriverManager.getConnection(dbUrl,
                 env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
              PreparedStatement statement = connection.prepareStatement(sql)) {
 
@@ -152,7 +155,7 @@ public class Job {
         String sql = "UPDATE job" +
                 "SET approval = 'approved'  " +
                 "WHERE job_id = ?";
-        try (Connection connection = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
+        try (Connection connection = DriverManager.getConnection(dbUrl,
                 env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
              PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, jobId);
@@ -166,7 +169,7 @@ public class Job {
         String sql = "UPDATE job" +
                 "SET approval = 'rejected'  " +
                 "WHERE job_id = ?";
-        try (Connection connection = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
+        try (Connection connection = DriverManager.getConnection(dbUrl,
                 env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
              PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, jobId);
@@ -179,7 +182,7 @@ public class Job {
     public  static String getResidency(int jobId) throws SQLException{
         String sql = "SELECT residency FROM job WHERE job_id = ?";
         //auto close db connection
-        try (Connection connection = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
+        try (Connection connection = DriverManager.getConnection(dbUrl,
                 env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
              PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setInt(1, jobId);
@@ -216,7 +219,7 @@ public class Job {
         HashMap<Long,Job> jobsMap = new HashMap<>();
 
         //automatic resource allocation
-        try (Connection connection = DriverManager.getConnection("jdbc:mysql://isejobsboard.petr.ie:3306/jobs_board",
+        try (Connection connection = DriverManager.getConnection(dbUrl,
                 env.get("MYSQL_USER_NAME"), env.get("MYSQL_USER_PASSWORD"));
              PreparedStatement statement = connection.prepareStatement(sql)) {
 
