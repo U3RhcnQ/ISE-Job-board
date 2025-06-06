@@ -365,15 +365,33 @@ export const AdminDashboard = () => {
             return;
         }
 
+        let response = null;
+
         try {
-            const response = await fetch(`${API_BASE_URL}/update-company?companyId=${currentCompany.company_id}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify(currentCompany),
-            });
+
+            if (currentCompany !== null && currentCompany.company_id !== null) {
+
+                response = await fetch(`${API_BASE_URL}/update-company?companyId=${currentCompany.company_id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify(currentCompany),
+                });
+
+            } else {
+
+                response = await fetch(`${API_BASE_URL}/add-company`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify(currentCompany),
+                });
+
+            }
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({ message: 'Failed to process company' }));
